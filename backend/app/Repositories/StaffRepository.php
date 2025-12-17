@@ -1,0 +1,165 @@
+<?php
+require_once __DIR__ . '/../Config/config.php';
+
+class StaffRepository {
+
+    private $db;
+
+    public function __construct() {
+        $this->db = (new Database())->getConnection();
+    }
+
+    // ================= COMMON HELPERS =================
+    private function getTable($role) {
+        $tables = [
+            'doctor' => 'doctors',
+            'nurse' => 'nurses',
+            'pharmacist' => 'pharmacists',
+            'receptionist' => 'receptionists'
+        ];
+
+        if (!isset($tables[$role])) {
+            throw new Exception("Invalid role table");
+        }
+
+        return $tables[$role];
+    }
+
+    // ================= GET ALL =================
+    public function getAll($role) {
+        $table = $this->getTable($role);
+        $stmt = $this->db->prepare("SELECT * FROM $table ORDER BY id DESC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ================= GET BY ID =================
+    public function getById($role, $id) {
+        $table = $this->getTable($role);
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // ================= CREATE STAFF =================
+    public function createDoctor($data) {
+        $sql = "INSERT INTO doctors 
+                (name, gender, age, specialization, qualification, experience, contact, email, address, available_days, available_time, status, department, license_number, rating, consultation_fee, bio)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            $data['name'],
+            $data['gender'] ?? null,
+            $data['age'] ?? null,
+            $data['specialization'] ?? null,
+            $data['qualification'] ?? null,
+            $data['experience'] ?? null,
+            $data['contact'] ?? null,
+            $data['email'] ?? null,
+            $data['address'] ?? null,
+            $data['available_days'] ?? null,
+            $data['available_time'] ?? null,
+            $data['status'] ?? 'Active',
+            $data['department'] ?? null,
+            $data['license_number'] ?? null,
+            $data['rating'] ?? 0,
+            $data['consultation_fee'] ?? 0,
+            $data['bio'] ?? null
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    public function createNurse($data) {
+        $sql = "INSERT INTO nurses 
+                (name, gender, age, phone, email, department, shift, experience, status, date_joined)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            $data['name'],
+            $data['gender'] ?? null,
+            $data['age'] ?? null,
+            $data['contact'] ?? null,
+            $data['email'] ?? null,
+            $data['department'] ?? null,
+            $data['shift'] ?? null,
+            $data['experience'] ?? null,
+            $data['status'] ?? 'Active',
+            $data['date_joined'] ?? date('Y-m-d')
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    public function createPharmacist($data) {
+        $sql = "INSERT INTO pharmacists 
+                (name, email, license_no, contact, experience)
+                VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            $data['name'],
+            $data['email'] ?? null,
+            $data['license_no'] ?? null,
+            $data['contact'] ?? null,
+            $data['experience'] ?? null
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    public function createReceptionist($data) {
+        $sql = "INSERT INTO receptionists 
+                (name, shift, contact, email, status)
+                VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            $data['name'],
+            $data['shift'] ?? null,
+            $data['contact'] ?? null,
+            $data['email'] ?? null,
+            $data['status'] ?? 'Active'
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    // ================= UPDATE STAFF =================
+    public function update($role, $id, $data) {
+        $table = $this->getTable($role);
+
+        // Map frontend keys to DB columns
+        if (isset($data['contact'])) {
+            $data['contact'] = $data['contact'];
+        }
+
+        // Allowed columns per role
+        $allowedColumns = [
+            'doctor' => ['name','email','gender','age','specialization','qualification','experience','contact','address','available_days','available_time','status','department','license_number','rating','consultation_fee','bio'],
+            'nurse' => ['name','email','gender','age','phone','department','shift','experience','status','date_joined'],
+            'pharmacist' => ['name','email','license_no','contact','experience'],
+            'receptionist' => ['name','email','shift','contact','status']
+        ];
+
+        $fields = [];
+        $values = [];
+
+        foreach ($data as $key => $value) {
+            if ($key !== 'id' && $key !== 'role' && in_array($key, $allowedColumns[$role])) {
+                $fields[] = "$key = ?";
+                $values[] = $value;
+            }
+        }
+
+        if (empty($fields)) {
+            throw new Exception("No valid fields to update for role: $role");
+        }
+
+        $values[] = $id;
+        $sql = "UPDATE $table SET " . implode(',', $fields) . " WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($values);
+    }
+
+    // ================= DELETE STAFF =================
+    public function delete($role, $id) {
+        $table = $this->getTable($role);
+        $stmt = $this->db->prepare("DELETE FROM $table WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+}

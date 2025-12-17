@@ -1,97 +1,66 @@
 <?php
+// backend/app/Routes/api.php
 
-require_once __DIR__ . "/../Middleware/AuthMiddleware.php";
-require_once __DIR__ . "/../Middleware/CsrfMiddleware.php";
+// Public Routes
+Route::get('csrf-token', 'AuthController@csrf');
+Route::post('register', 'AuthController@register');
+Route::post('login', 'AuthController@login');
+Route::post('refresh-token', 'AuthController@refresh');
 
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$method = $_SERVER['REQUEST_METHOD'];
+// Protected Routes
+// Middleware: AuthMiddleware
 
-// remove /backend/public
-$uri = str_replace("/backend/public", "", $uri);
+// Doctors
+Route::get('doctors', 'DoctorController@index', ['AuthMiddleware']);
+Route::get('doctors/{id}', 'DoctorController@show', ['AuthMiddleware']);
+Route::post('doctors', 'DoctorController@store', ['AuthMiddleware']);
+Route::put('doctors/{id}', 'DoctorController@update', ['AuthMiddleware']);
+Route::delete('doctors/{id}', 'DoctorController@delete', ['AuthMiddleware']);
 
-// ---------------- AUTH ----------------
-if ($uri === "/api/login" && $method === "POST") {
-    require_once "../Controllers/AuthController.php";
-    AuthController::login();
-    exit;
-}
 
-// ---------------- PATIENTS ----------------
-if ($uri === "/api/patients" && $method === "GET") {
-    AuthMiddleware::check();
-    PatientController::index();
-    exit;
-}
+// User & Role Management
+Route::get('users', 'UserController@index', ['AuthMiddleware']);
+Route::post('users', 'UserController@store', ['AuthMiddleware']);
 
-if ($uri === "/api/patients" && $method === "POST") {
-    CsrfMiddleware::check();
-    AuthMiddleware::check();
-    PatientController::store();
-    exit;
-}
+// Patient Management
+Route::get('patients', 'PatientController@index', ['AuthMiddleware']);
+Route::get('patients/{id}', 'PatientController@show', ['AuthMiddleware']);
+Route::post('patients', 'PatientController@store', ['AuthMiddleware']);
+Route::put('patients/{id}', 'PatientController@update', ['AuthMiddleware']);
+Route::delete('patients/{id}', 'PatientController@delete', ['AuthMiddleware']);
 
-if (preg_match("#^/api/patients/(\d+)$#", $uri, $m)) {
-    AuthMiddleware::check();
-    if ($method === "PUT") PatientController::update($m[1]);
-    if ($method === "DELETE") PatientController::delete($m[1]);
-    exit;
-}
+// Appointment Management
+Route::get('appointments', 'AppointmentController@index', ['AuthMiddleware']);
+Route::post('appointments', 'AppointmentController@store', ['AuthMiddleware']);
+Route::put('appointments/{id}', 'AppointmentController@update', ['AuthMiddleware']);
 
-// ---------------- APPOINTMENTS ----------------
-if ($uri === "/api/appointments" && $method === "GET") {
-    AuthMiddleware::check();
-    AppointmentController::index();
-    exit;
-}
+// Prescription
+Route::get('prescriptions', 'PrescriptionController@index', ['AuthMiddleware']);
+Route::post('prescriptions', 'PrescriptionController@store', ['AuthMiddleware']);
 
-if ($uri === "/api/appointments" && $method === "POST") {
-    CsrfMiddleware::check();
-    AuthMiddleware::check();
-    AppointmentController::store();
-    exit;
-}
+// Dashboard
+Route::get('dashboard', 'DashboardController@index', ['AuthMiddleware']);
 
-if (preg_match("#^/api/appointments/(\d+)$#", $uri, $m)) {
-    AuthMiddleware::check();
-    AppointmentController::update($m[1]);
-    exit;
-}
+// Billing
+Route::get('billing', 'BillingController@index', ['AuthMiddleware']);
 
-// ---------------- BILLING ----------------
-if ($uri === "/api/billing" && $method === "GET") {
-    AuthMiddleware::check();
-    BillingController::index();
-    exit;
-}
+// Staff
 
-if ($uri === "/api/billing" && $method === "POST") {
-    CsrfMiddleware::check();
-    AuthMiddleware::check();
-    BillingController::store();
-    exit;
-}
+Route::get('staff', 'StaffController@index', ['AuthMiddleware']);
+Route::get('staff/{id}', 'StaffController@show', ['AuthMiddleware']);
+Route::post('staff', 'StaffController@store', ['AuthMiddleware']);
+Route::put('staff/{id}', 'StaffController@update', ['AuthMiddleware']);
+Route::delete('staff/{id}', 'StaffController@delete', ['AuthMiddleware']);
 
-// COMMUNICATION
-if ($uri === "/api/communications" && $method === "GET") CommunicationController::index();
-if ($uri === "/api/communications" && $method === "POST") CommunicationController::store();
-if (preg_match("#^/api/communications/(\d+)$#", $uri, $m)) {
-  if ($method === "PUT") CommunicationController::update($m[1]);
-  if ($method === "DELETE") CommunicationController::delete($m[1]);
-}
 
-// NOTIFICATION
-if ($uri === "/api/notifications" && $method === "GET") NotificationController::index();
-if ($uri === "/api/notifications" && $method === "POST") NotificationController::store();
-if (preg_match("#^/api/notifications/(\d+)$#", $uri, $m) && $method === "PUT")
-  NotificationController::update($m[1]);
+// Settings
+Route::post('logout', 'AuthController@logout', ['AuthMiddleware']);
+Route::post('change-password', 'AuthController@changePassword', ['AuthMiddleware']);
 
-// INVENTORY
-if ($uri === "/api/medicines" && $method === "GET") InventoryController::index();
-if ($uri === "/api/medicines" && $method === "POST") InventoryController::store();
-if (preg_match("#^/api/medicines/(\d+)$#", $uri, $m)) {
-  if ($method === "PUT") InventoryController::update($m[1]);
-  if ($method === "DELETE") InventoryController::delete($m[1]);
-}
+// Inventory Routes
+Route::get('medicines', 'InventoryController@index', ['AuthMiddleware']);
+Route::get('medicines/{id}', 'InventoryController@show', ['AuthMiddleware']);
+Route::post('medicines', 'InventoryController@store', ['AuthMiddleware']);
+Route::put('medicines/{id}', 'InventoryController@update', ['AuthMiddleware']);
+Route::delete('medicines/{id}', 'InventoryController@delete', ['AuthMiddleware']);
 
-http_response_code(404);
-echo json_encode(["error" => "Route not found"]);

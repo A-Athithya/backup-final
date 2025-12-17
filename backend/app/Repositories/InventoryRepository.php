@@ -1,48 +1,62 @@
 <?php
-require_once "../Config/database.php";
+require_once 'BaseRepository.php';
 
-class InventoryRepository {
+class InventoryRepository extends BaseRepository {
 
-  public static function all() {
-    global $pdo;
-    return $pdo->query("SELECT * FROM medicines")->fetchAll(PDO::FETCH_ASSOC);
-  }
+    protected $table = 'medicines';
 
-  public static function create($d) {
-    global $pdo;
-    $stmt = $pdo->prepare("
-      INSERT INTO medicines (name, stock, price, status)
-      VALUES (?,?,?,?)
-    ");
-    $stmt->execute([
-      $d['name'],
-      $d['stock'],
-      $d['price'],
-      $d['status']
-    ]);
-    return self::find($pdo->lastInsertId());
-  }
+    public function getAll() {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} ORDER BY id DESC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-  public static function update($id, $d) {
-    global $pdo;
-    $stmt = $pdo->prepare("
-      UPDATE medicines SET name=?, stock=?, price=?, status=? WHERE id=?
-    ");
-    $stmt->execute([
-      $d['name'], $d['stock'], $d['price'], $d['status'], $id
-    ]);
-    return self::find($id);
-  }
+    public function getById($id) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
-  public static function delete($id) {
-    global $pdo;
-    $pdo->prepare("DELETE FROM medicines WHERE id=?")->execute([$id]);
-  }
+    public function create($data) {
+        $sql = "INSERT INTO {$this->table} 
+            (medicine_name, category, price, stock, expiry_date, description) 
+            VALUES 
+            (:medicine_name, :category, :price, :stock, :expiry_date, :description)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':medicine_name' => $data['medicine_name'] ?? '',
+            ':category' => $data['category'] ?? null,
+            ':price' => $data['price'] ?? 0,
+            ':stock' => $data['stock'] ?? 0,
+            ':expiry_date' => $data['expiry_date'] ?? null,
+            ':description' => $data['description'] ?? null
+        ]);
+        return $this->db->lastInsertId();
+    }
 
-  public static function find($id) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM medicines WHERE id=?");
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-  }
+    public function update($id, $data) {
+        $sql = "UPDATE {$this->table} SET 
+                    medicine_name = :medicine_name,
+                    category = :category,
+                    price = :price,
+                    stock = :stock,
+                    expiry_date = :expiry_date,
+                    description = :description
+                WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':medicine_name' => $data['medicine_name'] ?? '',
+            ':category' => $data['category'] ?? null,
+            ':price' => $data['price'] ?? 0,
+            ':stock' => $data['stock'] ?? 0,
+            ':expiry_date' => $data['expiry_date'] ?? null,
+            ':description' => $data['description'] ?? null,
+            ':id' => $id
+        ]);
+    }
+
+    public function delete($id) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
+    }
 }

@@ -1,28 +1,64 @@
 <?php
-require_once "../Services/InventoryService.php";
-require_once "../Helpers/Response.php";
+require_once __DIR__ . '/../Services/InventoryService.php';
+require_once __DIR__ . '/../Helpers/Response.php';
 
 class InventoryController {
+    private $service;
 
-  public static function index() {
-    $data = InventoryService::getAll();
-    Response::success($data);
-  }
+    public function __construct() {
+        $this->service = new InventoryService();
+    }
 
-  public static function store() {
-    $payload = $_REQUEST['payload'];
-    $created = InventoryService::create($payload);
-    Response::success($created);
-  }
+    // GET /medicines
+    public function index() {
+        $data = $this->service->getAllMedicines();
+        Response::json($data);
+    }
 
-  public static function update($id) {
-    $payload = $_REQUEST['payload'];
-    $updated = InventoryService::update($id, $payload);
-    Response::success($updated);
-  }
+    // GET /medicines/{id}
+    public function show($id) {
+        $medicine = $this->service->getMedicine($id);
+        if ($medicine) {
+            Response::json($medicine);
+        } else {
+            Response::json(['error' => 'Medicine not found'], 404);
+        }
+    }
 
-  public static function delete($id) {
-    InventoryService::delete($id);
-    Response::success(["deleted" => true]);
-  }
+    // POST /medicines
+    public function store() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input || empty($input['medicine_name'])) {
+            Response::json(['error' => 'Medicine name is required'], 400);
+            return;
+        }
+        $id = $this->service->addMedicine($input);
+        Response::json(['id' => $id], 201);
+    }
+
+    // PUT /medicines/{id}
+    public function update($id) {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            Response::json(['error' => 'Invalid data'], 400);
+            return;
+        }
+
+        $updated = $this->service->updateMedicine($id, $input);
+        if ($updated) {
+            Response::json(['message' => 'Medicine updated successfully']);
+        } else {
+            Response::json(['error' => 'Update failed or medicine not found'], 400);
+        }
+    }
+
+    // DELETE /medicines/{id}
+    public function delete($id) {
+        $deleted = $this->service->deleteMedicine($id);
+        if ($deleted) {
+            Response::json(['message' => 'Medicine deleted successfully']);
+        } else {
+            Response::json(['error' => 'Medicine not found'], 404);
+        }
+    }
 }
