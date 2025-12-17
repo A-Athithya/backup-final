@@ -1,0 +1,147 @@
+body {
+  background-color: #fafbfc;
+  font-family: "Inter", "Roboto", sans-serif;
+}
+
+/* ================= SIDEBAR UI ================= */
+
+.sidebar {
+  transition: width 0.25s ease, padding 0.25s ease;
+  border-right: 1px solid #e8eaed;
+  background: white;
+  will-change: width;
+}
+
+.sidebar-collapsed {
+  width: 70px;
+  overflow-x: hidden;
+}
+
+.sidebar-expanded {
+  width: 240px;
+}
+
+/* Links spacing smooth */
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  color: #3c4043;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: background 0.15s ease, padding 0.2s ease;
+  margin: 3px 8px;
+  white-space: nowrap;
+}
+
+.sidebar-collapsed a {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.sidebar a:hover {
+  background-color: #f1f3f4;
+}
+
+.sidebar a.fw-bold {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  font-weight: 500;
+}
+
+/* ✅ Stop Jumping Effect */
+.MuiDrawer-paper {
+  transition: width 0.25s ease !important;
+  will-change: width;
+  contain: layout paint;
+}
+
+/* Fix icon bottom jump */
+.MuiListItem-root {
+  margin-bottom: 4px;
+}
+
+/* Icon alignment smooth */
+.MuiListItemIcon-root {
+  min-width: 40px;
+  transition: margin 0.25s ease;
+}
+
+/* ================= NAVBAR ================= */
+
+.navbar {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.navbar .search-input {
+  width: 280px;
+  border: 1px solid #dadce0;
+  padding: 8px 12px;
+  border-radius: 24px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.navbar .search-input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}
+
+/* ================= MAIN LAYOUT ================= */
+
+.layout-main {
+  padding: 32px;
+  min-height: calc(100vh - 70px);
+  background: #fafbfc;
+}
+
+/* ================= DROPDOWN ================= */
+
+.dropdown-menu {
+  border-radius: 12px;
+  padding: 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #e8eaed;
+}
+
+.dropdown-item {
+  padding: 12px 20px;
+  transition: background 0.2s ease;
+  color: #3c4043;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* ================= MUI OVERRIDES ================= */
+
+.MuiAppBar-root {
+  background: white;
+  color: #202124;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.MuiButton-root {
+  border-radius: 8px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.MuiCard-root {
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid #e8eaed;
+  transition: box-shadow 0.2s ease;
+}
+
+.MuiCard-root:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
