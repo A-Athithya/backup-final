@@ -1,21 +1,30 @@
 <?php
-require_once "../Repositories/InventoryRepository.php";
+require_once __DIR__ . '/../Repositories/InventoryRepository.php';
 
 class InventoryService {
+    private $repo;
 
-  public static function getAll() {
-    return InventoryRepository::all();
-  }
+    public function __construct() {
+        $this->repo = new InventoryRepository();
+    }
 
-  public static function create($data) {
-    return InventoryRepository::create($data);
-  }
+    public function getAllMedicines() {
+        return $this->repo->getAll();
+    }
 
-  public static function update($id, $data) {
-    return InventoryRepository::update($id, $data);
-  }
+    public function getMedicine($id) {
+        return $this->repo->getById($id);
+    }
 
-  public static function delete($id) {
-    InventoryRepository::delete($id);
-  }
+    public function addMedicine($data) {
+        return $this->repo->create($data);
+    }
+
+    public function updateMedicine($id, $data) {
+        return $this->repo->update($id, $data);
+    }
+
+    public function deleteMedicine($id) {
+        return $this->repo->delete($id);
+    }
 }

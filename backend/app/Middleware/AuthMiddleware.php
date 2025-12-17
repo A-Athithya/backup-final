@@ -1,9 +1,14 @@
 <?php
+
+
 class AuthMiddleware {
     public static function handle() {
-        $token = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if (!$token || !JWT::verify(str_replace("Bearer ","",$token))) {
-            Response::error("Unauthorized", 401);
+        if (isset($_SESSION['user'])) {
+            return $_SESSION['user']; 
         }
+        
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized - Please Login']);
+        exit;
     }
 }
