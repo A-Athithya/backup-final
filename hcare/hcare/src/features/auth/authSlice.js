@@ -1,8 +1,11 @@
 // src/features/auth/authSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
-// Simple persistence: check localStorage directly
+// Load tokens
 const storedUser = localStorage.getItem("hcare_user");
+const storedAccessToken = localStorage.getItem("hcare_access_token");
+const storedRefreshToken = localStorage.getItem("hcare_refresh_token");
+
 let preloadedUser = null;
 if (storedUser) {
   try {
@@ -14,11 +17,12 @@ if (storedUser) {
 
 const initialState = {
   user: preloadedUser, // Load from storage
-  accessToken: null,
-  refreshToken: null,
+  accessToken: storedAccessToken,
+  refreshToken: storedRefreshToken,
   loading: false,
   error: null,
-  tokenExpiresAt: null,
+  tokenExpiresAt: null, // Hard to persist expiry accurately without timestamp
+  csrfToken: null // CSRF usually not persisted long term but can be
 };
 
 const authSlice = createSlice({
@@ -38,8 +42,10 @@ const authSlice = createSlice({
       state.tokenExpiresAt = Date.now() + (action.payload.expiresIn * 1000);
       state.error = null;
 
-      // Simple persistence
+      // Persistence
       localStorage.setItem("hcare_user", JSON.stringify(action.payload.user));
+      localStorage.setItem("hcare_access_token", action.payload.accessToken);
+      localStorage.setItem("hcare_refresh_token", action.payload.refreshToken);
     },
 
     loginFailure(state, action) {
@@ -61,6 +67,8 @@ const authSlice = createSlice({
 
       // Clear persistence
       localStorage.removeItem("hcare_user");
+      localStorage.removeItem("hcare_access_token");
+      localStorage.removeItem("hcare_refresh_token");
     },
   },
 });

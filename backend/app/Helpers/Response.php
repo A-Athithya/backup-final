@@ -3,15 +3,14 @@
 
 class Response {
     public static function json($data, $status = 200) {
+        
+        // Encrypt Response
+        require_once __DIR__ . '/../Services/EncryptionService.php';
+        $encryption = new EncryptionService();
+        $encrypted = $encryption->encrypt($data);
         http_response_code($status);
-        
-        // Plaintext Response
-        $json = json_encode($data);
-        
-        // Clean any accidental output (whitespace/BOM)
         if (ob_get_length()) ob_clean();
-        
-        echo $json;
+        echo json_encode(['payload' => $encrypted]);
         exit;
     }
 }

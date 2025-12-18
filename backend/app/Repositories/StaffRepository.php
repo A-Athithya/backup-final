@@ -26,10 +26,10 @@ class StaffRepository {
     }
 
     // ================= GET ALL =================
-    public function getAll($role) {
+    public function getAll($role, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("SELECT * FROM $table ORDER BY id DESC");
-        $stmt->execute();
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE tenant_id = ? ORDER BY id DESC");
+        $stmt->execute([$tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -45,8 +45,8 @@ class StaffRepository {
     // ================= CREATE STAFF =================
     public function createDoctor($data) {
         $sql = "INSERT INTO doctors 
-                (name, gender, age, specialization, qualification, experience, contact, email, address, available_days, available_time, status, department, license_number, rating, consultation_fee, bio)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (name, gender, age, specialization, qualification, experience, contact, email, address, available_days, available_time, status, department, license_number, rating, consultation_fee, bio, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         // Handle availableDays array -> string
         $availableDays = $data['availableDays'] ?? $data['available_days'] ?? null;
@@ -72,15 +72,16 @@ class StaffRepository {
             $data['licenseNumber'] ?? $data['license_number'] ?? null,
             $data['rating'] ?? 0,
             $data['consultationFee'] ?? $data['consultation_fee'] ?? 0,
-            $data['bio'] ?? null
+            $data['bio'] ?? null,
+            $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
     }
 
     public function createNurse($data) {
         $sql = "INSERT INTO nurses 
-                (name, gender, age, phone, email, department, shift, experience, status, date_joined)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (name, gender, age, phone, email, department, shift, experience, status, tenant_id, date_joined)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
@@ -92,6 +93,7 @@ class StaffRepository {
             $data['shift'] ?? null,
             $data['experience'] ?? null,
             $data['status'] ?? 'Active',
+            $data['tenant_id'],
             $data['dateJoined'] ?? $data['date_joined'] ?? date('Y-m-d')
         ]);
         return $this->db->lastInsertId();
@@ -99,30 +101,32 @@ class StaffRepository {
 
     public function createPharmacist($data) {
         $sql = "INSERT INTO pharmacists 
-                (name, email, license_no, contact, experience)
-                VALUES (?, ?, ?, ?, ?)";
+                (name, email, license_no, contact, experience, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
             $data['email'] ?? null,
             $data['licenseNo'] ?? $data['license_no'] ?? null,
             $data['contact'] ?? null,
-            $data['experience'] ?? null
+            $data['experience'] ?? null,
+            $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
     }
 
     public function createReceptionist($data) {
         $sql = "INSERT INTO receptionists 
-                (name, shift, contact, email, status)
-                VALUES (?, ?, ?, ?, ?)";
+                (name, shift, contact, email, status, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
             $data['shift'] ?? null,
             $data['contact'] ?? null,
             $data['email'] ?? null,
-            $data['status'] ?? 'Active'
+            $data['status'] ?? 'Active',
+            $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
     }

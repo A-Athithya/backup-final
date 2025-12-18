@@ -4,9 +4,9 @@ require_once __DIR__ . '/BaseRepository.php';
 class DoctorRepository extends BaseRepository {
     protected $table = 'doctors';
 
-    public function getAll() {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} ORDER BY id DESC");
-        $stmt->execute();
+    public function getAll($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE tenant_id = :tenant_id ORDER BY id DESC");
+        $stmt->execute([':tenant_id' => $tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -20,11 +20,11 @@ class DoctorRepository extends BaseRepository {
         $sql = "INSERT INTO {$this->table} 
         (name, email, gender, age, specialization, qualification, experience, contact,
          address, available_days, available_time, department, license_number,
-         rating, consultation_fee, bio, status)
+         rating, consultation_fee, bio, status, tenant_id)
         VALUES
         (:name, :email, :gender, :age, :specialization, :qualification, :experience, :contact,
          :address, :available_days, :available_time, :department, :license_number,
-         :rating, :consultation_fee, :bio, :status)";
+         :rating, :consultation_fee, :bio, :status, :tenant_id)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($data);
     }
