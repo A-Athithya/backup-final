@@ -41,7 +41,7 @@ export default function PrescriptionsPage() {
         {isLoading && <div style={{ textAlign: "center", padding: 20 }}><Spin /></div>}
         {!isLoading && (
           <List
-            dataSource={list}
+            dataSource={list || []}
             renderItem={(prescription) => (
               <List.Item>
                 <Card style={{ width: "100%" }}>
@@ -86,7 +86,7 @@ export default function PrescriptionsPage() {
                   <h4>Prescribed Medicines</h4>
 
                   <List
-                    dataSource={prescription.medicines}
+                    dataSource={prescription.medicines || []}
                     renderItem={(med) => (
                       <List.Item>
                         <div>
