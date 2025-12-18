@@ -51,4 +51,9 @@ class PatientController {
             Response::json(['error' => 'Delete failed'], 400);
         }
     }
+
+    public function appointments($id) {
+        $appointments = $this->patientService->getPatientAppointments($id);
+        Response::json($appointments);
+    }
 }

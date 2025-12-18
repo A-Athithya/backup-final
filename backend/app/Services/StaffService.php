@@ -23,9 +23,10 @@ class StaffService {
     }
 
     // ================= GET ALL STAFF =================
-    public function getAllStaff($role) {
+    public function getAllStaff($role = 'doctor') {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->getAll($role);
+        return $this->repo->getAll($role, $tenantId);
     }
 
     // ================= GET SINGLE STAFF =================
@@ -36,7 +37,8 @@ class StaffService {
 
     // ================= CREATE STAFF =================
     public function createStaff($data) {
-        $role = $this->normalizeRole($data['role'] ?? '');
+        $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? $data['tenant_id'] ?? 1;
+        $role = $this->normalizeRole($data['role'] ?? 'doctor');
 
         switch ($role) {
             case 'doctor':

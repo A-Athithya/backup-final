@@ -27,7 +27,7 @@ class InventoryController {
 
     // POST /medicines
     public function store() {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $_REQUEST['decoded_input'];
         if (!$input || empty($input['medicine_name'])) {
             Response::json(['error' => 'Medicine name is required'], 400);
             return;
@@ -38,7 +38,7 @@ class InventoryController {
 
     // PUT /medicines/{id}
     public function update($id) {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $_REQUEST['decoded_input'];
         if (!$input) {
             Response::json(['error' => 'Invalid data'], 400);
             return;

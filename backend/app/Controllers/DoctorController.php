@@ -10,7 +10,7 @@ class DoctorController {
     }
 
     public function index() {
-        Response::json($this->service->all());
+        Response::json($this->service->getAllDoctors());
     }
 
     public function show($id) {
@@ -22,13 +22,13 @@ class DoctorController {
     }
 
     public function store() {
-        $data = json_decode(file_get_contents("php://input"), true);
-        $this->service->create($data);
+        $data = $_REQUEST['decoded_input'];
+        $this->service->createDoctor($data);
         Response::json(['message' => 'Doctor created successfully']);
     }
 
     public function update($id) {
-        $data = json_decode(file_get_contents("php://input"), true);
+        $data = $_REQUEST['decoded_input'];
         $this->service->update($id, $data);
         Response::json(['message' => 'Doctor updated successfully']);
     }

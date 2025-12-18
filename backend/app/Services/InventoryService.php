@@ -9,7 +9,8 @@ class InventoryService {
     }
 
     public function getAllMedicines() {
-        return $this->repo->getAll();
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->getAll($tenantId);
     }
 
     public function getMedicine($id) {
@@ -17,6 +18,7 @@ class InventoryService {
     }
 
     public function addMedicine($data) {
+        $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? 1;
         return $this->repo->create($data);
     }
 

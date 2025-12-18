@@ -3,80 +3,94 @@ require_once 'BaseRepository.php';
 
 class PatientRepository extends BaseRepository {
 
-    public function getAll() {
+    public function getAll($tenantId) {
         $stmt = $this->db->prepare("
             SELECT id, name, email, phone as contact, gender, age, blood_group as bloodGroup, 
                    address, registered_date as registeredDate, medical_history as medicalHistory, 
                    allergies, emergency_contact as emergencyContact, status 
             FROM patients 
+            WHERE tenant_id = :tenant_id AND is_deleted = 0
             ORDER BY created_at DESC
         ");
-        $stmt->execute();
+        $stmt->execute([':tenant_id' => $tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM patients WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+    public function getById($id, $tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM patients WHERE id = :id AND tenant_id = :tenant_id AND is_deleted = 0");
+        $stmt->execute([':id' => $id, ':tenant_id' => $tenantId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function create($data) {
-        $sql = "INSERT INTO patients (name, email, phone, gender, age, blood_group, address, registered_date, medical_history, allergies, emergency_contact, status) 
-                VALUES (:name, :email, :phone, :gender, :age, :blood_group, :address, :registered_date, :medical_history, :allergies, :emergency_contact, :status)";
+        $sql = "INSERT INTO patients (name, email, phone, gender, age, blood_group, address, registered_date, medical_history, allergies, emergency_contact, status, tenant_id) 
+                VALUES (:name, :email, :phone, :gender, :age, :blood_group, :address, :registered_date, :medical_history, :allergies, :emergency_contact, :status, :tenant_id)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':name' => $data['name'],
-            ':email' => $data['email'],
-            ':phone' => $data['contact'] ?? null,
-            ':gender' => $data['gender'] ?? null,
-            ':age' => $data['age'] ?? null,
-            ':blood_group' => $data['bloodGroup'] ?? null,
-            ':address' => $data['address'] ?? null,
-            ':registered_date' => $data['registeredDate'] ?? date('Y-m-d'),
-            ':medical_history' => $data['medicalHistory'] ?? null,
-            ':allergies' => $data['allergies'] ?? null,
-            ':emergency_contact' => $data['emergencyContact'] ?? null,
-            ':status' => $data['status'] ?? 'Active'
-        ]);
-        return $this->db->lastInsertId();
-    }
-
-    public function update($id, $data) {
-        $sql = "UPDATE patients SET 
-                    name = :name,
-                    email = :email,
-                    phone = :phone,
-                    gender = :gender,
-                    age = :age,
-                    blood_group = :blood_group,
-                    address = :address,
-                    registered_date = :registered_date,
-                    medical_history = :medical_history,
-                    allergies = :allergies,
-                    emergency_contact = :emergency_contact,
-                    status = :status
-                WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
+        
         return $stmt->execute([
             ':name' => $data['name'],
-            ':email' => $data['email'],
-            ':phone' => $data['contact'] ?? null,
+            ':email' => $data['email'] ?? null,
+            ':phone' => $data['contact'] ?? $data['phone'] ?? null,
             ':gender' => $data['gender'] ?? null,
             ':age' => $data['age'] ?? null,
-            ':blood_group' => $data['bloodGroup'] ?? null,
+            ':blood_group' => $data['bloodGroup'] ?? $data['blood_group'] ?? null,
             ':address' => $data['address'] ?? null,
-            ':registered_date' => $data['registeredDate'] ?? date('Y-m-d'),
-            ':medical_history' => $data['medicalHistory'] ?? null,
+            ':registered_date' => $data['registeredDate'] ?? $data['registered_date'] ?? date('Y-m-d'),
+            ':medical_history' => $data['medicalHistory'] ?? $data['medical_history'] ?? null,
             ':allergies' => $data['allergies'] ?? null,
-            ':emergency_contact' => $data['emergencyContact'] ?? null,
+            ':emergency_contact' => $data['emergencyContact'] ?? $data['emergency_contact'] ?? null,
             ':status' => $data['status'] ?? 'Active',
-            ':id' => $id
-        ]);
+            ':tenant_id' => $data['tenant_id']
+        ]) ? $this->db->lastInsertId() : false;
     }
 
-    public function delete($id) {
-        $stmt = $this->db->prepare("DELETE FROM patients WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+    public function update($id, $data, $tenantId) {
+        $fields = [];
+        $params = [':id' => $id, ':tenant_id' => $tenantId];
+
+        $mapping = [
+            'name' => 'name',
+            'email' => 'email',
+            'contact' => 'phone',
+            'gender' => 'gender',
+            'age' => 'age',
+            'bloodGroup' => 'blood_group',
+            'address' => 'address',
+            'registeredDate' => 'registered_date',
+            'medicalHistory' => 'medical_history',
+            'allergies' => 'allergies',
+            'emergencyContact' => 'emergency_contact',
+            'status' => 'status'
+        ];
+
+        foreach ($mapping as $dataKey => $dbCol) {
+            if (isset($data[$dataKey])) {
+                $fields[] = "$dbCol = :$dbCol";
+                $params[":$dbCol"] = $data[$dataKey];
+            }
+        }
+
+        if (empty($fields)) return false;
+
+        $sql = "UPDATE patients SET " . implode(', ', $fields) . " WHERE id = :id AND tenant_id = :tenant_id AND is_deleted = 0";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function softDelete($id, $tenantId) {
+        $stmt = $this->db->prepare("UPDATE patients SET is_deleted = 1 WHERE id = :id AND tenant_id = :tenant_id");
+        return $stmt->execute([':id' => $id, ':tenant_id' => $tenantId]);
+    }
+
+    public function getAppointments($patientId, $tenantId) {
+        $stmt = $this->db->prepare("
+            SELECT a.*, d.name as doctor_name, d.specialization 
+            FROM appointments a
+            LEFT JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.patient_id = :patient_id AND a.tenant_id = :tenant_id
+            ORDER BY a.appointment_date DESC, a.appointment_time DESC
+        ");
+        $stmt->execute([':patient_id' => $patientId, ':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

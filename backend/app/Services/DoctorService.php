@@ -8,15 +8,17 @@ class DoctorService {
         $this->repo = new DoctorRepository();
     }
 
-    public function all() {
-        return $this->repo->getAll();
+    public function getAllDoctors() {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->getAll($tenantId);
     }
 
     public function find($id) {
         return $this->repo->getById($id);
     }
 
-    public function create($data) {
+    public function createDoctor($data) {
+        $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? 1;
         return $this->repo->create($data);
     }
 

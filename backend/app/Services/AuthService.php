@@ -58,7 +58,8 @@ class AuthService {
                 'id' => $user['id'],
                 'name' => $user['name'],
                 'role' => $user['role'],
-                'email' => $user['email']
+                'email' => $user['email'],
+                'tenant_id' => $user['tenant_id']
             ]
         ];
     }

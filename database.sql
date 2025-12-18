@@ -12,17 +12,49 @@ SET time_zone = "+00:00";
 
 -- --------------------------------------------------------
 
+-- --------------------------------------------------------
+
+-- Table structure for table `tenants`
+DROP TABLE IF EXISTS `tenants`;
+CREATE TABLE `tenants` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `domain` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+-- Table structure for table `refresh_tokens`
+DROP TABLE IF EXISTS `refresh_tokens`;
+CREATE TABLE `refresh_tokens` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `token_hash` varchar(64) NOT NULL,
+  `user_id` int NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `revoked` tinyint(1) DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `token_hash` (`token_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
 -- Table structure for table `users`
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `tenant_id` int DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` varchar(50) NOT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
@@ -45,8 +77,11 @@ CREATE TABLE `patients` (
   `allergies` text,
   `emergency_contact` varchar(255) DEFAULT NULL,
   `status` varchar(50) DEFAULT 'Active',
+  `tenant_id` int DEFAULT NULL,
+  `is_deleted` tinyint(1) DEFAULT '0',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `patients` 
@@ -87,8 +122,10 @@ CREATE TABLE `doctors` (
   `rating` double DEFAULT '0',
   `consultation_fee` decimal(10,2) DEFAULT '0.00',
   `bio` text,
+  `tenant_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `doctors` 
@@ -120,8 +157,10 @@ CREATE TABLE `appointments` (
   `status` varchar(50) DEFAULT 'Pending',
   `payment_amount` decimal(10,2) DEFAULT '0.00',
   `notes` text,
+  `tenant_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -139,19 +178,18 @@ CREATE TABLE `nurses` (
   `shift` varchar(50) DEFAULT NULL,
   `experience` varchar(255) DEFAULT NULL,
   `status` varchar(50) DEFAULT 'Active',
+  `tenant_id` int DEFAULT NULL,
   `date_joined` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `nurses` 
-(`name`, `email`, `gender`, `age`, `phone`, `department`, `shift`, `experience`, `status`, `date_joined`) 
+(`name`, `email`, `gender`, `age`, `phone`, `department`, `shift`, `experience`, `status`, `tenant_id`, `date_joined`) 
 VALUES
-('Priya S', 'priya.s@nurses.com', 'Female', 28, '9876521001', 'Cardiology', 'Morning', '5 years', 'Active', '2023-01-10'),
-('Anjali R', 'anjali.r@nurses.com', 'Female', 32, '9876521002', 'Gynecology', 'Evening', '8 years', 'Active', '2022-05-15'),
-('Karthik M', 'karthik.m@nurses.com', 'Male', 30, '9876521003', 'Orthopedics', 'Night', '6 years', 'Active', '2021-11-20'),
-('Meena P', 'meena.p@nurses.com', 'Female', 27, '9876521004', 'Pediatrics', 'Morning', '4 years', 'Active', '2023-03-12'),
-('Suresh K', 'suresh.k@nurses.com', 'Male', 35, '9876521005', 'Neurology', 'Evening', '10 years', 'Active', '2020-08-25');
-
+('Priya S', 'priya.s@nurses.com', 'Female', 28, '9876521001', 'Cardiology', 'Morning', '5 years', 'Active', 1, '2023-01-10'),
+('Anjali R', 'anjali.r@nurses.com', 'Female', 32, '9876521002', 'Gynecology', 'Evening', '8 years', 'Active', 1, '2022-05-15'),
+('Karthik M', 'karthik.m@nurses.com', 'Male', 30, '9876521003', 'Orthopedics', 'Night', '6 years', 'Active', 1, '2021-11-20');
 
 -- --------------------------------------------------------
 
@@ -164,17 +202,16 @@ CREATE TABLE `pharmacists` (
   `license_no` varchar(100) DEFAULT NULL,
   `contact` varchar(50) DEFAULT NULL,
   `experience` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `pharmacists` 
-(`name`, `email`, `license_no`, `contact`, `experience`) 
+(`name`, `email`, `license_no`, `contact`, `experience`, `tenant_id`) 
 VALUES
-('Arun R', 'arun.r@pharmacy.com', 'TNPH001', '9876542001', '7 years'),
-('Nithya S', 'nithya.s@pharmacy.com', 'TNPH002', '9876542002', '5 years'),
-('Ravi K', 'ravi.k@pharmacy.com', 'TNPH003', '9876542003', '10 years'),
-('Lakshmi P', 'lakshmi.p@pharmacy.com', 'TNPH004', '9876542004', '6 years'),
-('Karthik M', 'karthik.m@pharmacy.com', 'TNPH005', '9876542005', '8 years');
+('Arun R', 'arun.r@pharmacy.com', 'TNPH001', '9876542001', '7 years', 1),
+('Nithya S', 'nithya.s@pharmacy.com', 'TNPH002', '9876542002', '5 years', 1);
 
 
 -- --------------------------------------------------------
@@ -188,17 +225,16 @@ CREATE TABLE `receptionists` (
   `shift` varchar(50) DEFAULT NULL,
   `contact` varchar(50) DEFAULT NULL,
   `status` varchar(50) DEFAULT 'Active',
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `receptionists` 
-(`name`, `email`, `shift`, `contact`, `status`) 
+(`name`, `email`, `shift`, `contact`, `status`, `tenant_id`) 
 VALUES
-('Divya S', 'divya.s@reception.com', 'Morning', '9876531001', 'Active'),
-('Ramesh K', 'ramesh.k@reception.com', 'Evening', '9876531002', 'Active'),
-('Anitha N', 'anitha.n@reception.com', 'Morning', '9876531003', 'Active'),
-('Vikram P', 'vikram.p@reception.com', 'Night', '9876531004', 'Active'),
-('Meera T', 'meera.t@reception.com', 'Morning', '9876531005', 'Active');
+('Divya S', 'divya.s@reception.com', 'Morning', '9876531001', 'Active', 1),
+('Ramesh K', 'ramesh.k@reception.com', 'Evening', '9876531002', 'Active', 1);
 
 
 -- --------------------------------------------------------
@@ -213,7 +249,9 @@ CREATE TABLE `medicines` (
   `price` decimal(10,2) DEFAULT '0.00',
   `stock` int DEFAULT '0',
   `expiry_date` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -228,7 +266,9 @@ CREATE TABLE `invoices` (
   `total_amount` decimal(10,2) DEFAULT '0.00',
   `paid_amount` decimal(10,2) DEFAULT '0.00',
   `status` varchar(50) DEFAULT 'Unpaid',
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -257,7 +297,9 @@ CREATE TABLE `prescriptions` (
   `dosage` text,
   `instructions` text,
   `date` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -269,8 +311,10 @@ CREATE TABLE `notifications` (
   `user_id` int NOT NULL,
   `message` text NOT NULL,
   `read_status` tinyint(1) DEFAULT '0',
+  `tenant_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -282,7 +326,9 @@ CREATE TABLE `news` (
   `title` varchar(255) NOT NULL,
   `content` text,
   `published_date` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -294,7 +340,9 @@ CREATE TABLE `billing` (
   `title` varchar(255) DEFAULT NULL,
   `amount` decimal(10,2) DEFAULT '0.00',
   `date` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `tenant_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 COMMIT;

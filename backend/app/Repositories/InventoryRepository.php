@@ -5,9 +5,9 @@ class InventoryRepository extends BaseRepository {
 
     protected $table = 'medicines';
 
-    public function getAll() {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} ORDER BY id DESC");
-        $stmt->execute();
+    public function getAll($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE tenant_id = :tenant_id ORDER BY id DESC");
+        $stmt->execute([':tenant_id' => $tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -19,9 +19,9 @@ class InventoryRepository extends BaseRepository {
 
     public function create($data) {
         $sql = "INSERT INTO {$this->table} 
-            (medicine_name, category, price, stock, expiry_date, description) 
+            (medicine_name, category, price, stock, expiry_date, description, tenant_id) 
             VALUES 
-            (:medicine_name, :category, :price, :stock, :expiry_date, :description)";
+            (:medicine_name, :category, :price, :stock, :expiry_date, :description, :tenant_id)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':medicine_name' => $data['medicine_name'] ?? '',
@@ -29,7 +29,8 @@ class InventoryRepository extends BaseRepository {
             ':price' => $data['price'] ?? 0,
             ':stock' => $data['stock'] ?? 0,
             ':expiry_date' => $data['expiry_date'] ?? null,
-            ':description' => $data['description'] ?? null
+            ':description' => $data['description'] ?? null,
+            ':tenant_id' => $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
     }

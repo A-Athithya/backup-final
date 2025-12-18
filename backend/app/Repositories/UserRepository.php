@@ -7,7 +7,7 @@ class UserRepository extends BaseRepository {
     }
 
     public function create($data) {
-        $sql = "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)";
+        $sql = "INSERT INTO users (name, email, password, role, tenant_id) VALUES (:name, :email, :password, :role, :tenant_id)";
         $stmt = $this->db->prepare($sql);
         
         // Hash password
@@ -16,7 +16,8 @@ class UserRepository extends BaseRepository {
         $stmt->bindParam(':name', $data['name']);
         $stmt->bindParam(':email', $data['email']);
         $stmt->bindParam(':password', $password);
-        $stmt->bindParam(':role', $data['role']); // e.g. 'admin', 'doctor', 'patient'
+        $stmt->bindParam(':role', $data['role']); 
+        $stmt->bindParam(':tenant_id', $data['tenant_id']);
         
         if ($stmt->execute()) {
             return $this->db->lastInsertId();
@@ -35,5 +36,61 @@ class UserRepository extends BaseRepository {
         // Debug removed
         
         return $user;
+    }
+
+    public function findById($id) {
+        $sql = "SELECT id, name, email, role, tenant_id, created_at FROM users WHERE id = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function findAll($tenantId = null) {
+        $sql = "SELECT id, name, email, role, tenant_id, created_at FROM users";
+        if ($tenantId) {
+            $sql .= " WHERE tenant_id = :tenant_id";
+        }
+        $stmt = $this->db->prepare($sql);
+        if ($tenantId) {
+            $stmt->bindParam(':tenant_id', $tenantId);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function update($id, $data) {
+        $fields = [];
+        $params = [':id' => $id];
+
+        if (isset($data['name'])) {
+            $fields[] = "name = :name";
+            $params[':name'] = $data['name'];
+        }
+        if (isset($data['email'])) {
+            $fields[] = "email = :email";
+            $params[':email'] = $data['email'];
+        }
+        if (isset($data['role'])) {
+            $fields[] = "role = :role";
+            $params[':role'] = $data['role'];
+        }
+        if (isset($data['password'])) {
+            $fields[] = "password = :password";
+            $params[':password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+        }
+
+        if (empty($fields)) return false;
+
+        $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function delete($id) {
+        $sql = "DELETE FROM users WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
     }
 }

@@ -41,6 +41,7 @@ try {
     // Load Middleware
     require_once BASE_PATH . '/app/Middleware/AuthMiddleware.php';
     require_once BASE_PATH . '/app/Middleware/CsrfMiddleware.php';
+    require_once BASE_PATH . '/app/Middleware/RoleMiddleware.php';
     require_once BASE_PATH . '/app/Helpers/Router.php';
 
     // Start Session
@@ -56,18 +57,11 @@ try {
         session_start();
     }
 
-    // Handling Input (Plaintext)
-    $input_data = [];
-    $raw_input = $_REQUEST['_raw_input_cache'] ?? file_get_contents('php://input');
+    // Handling Input (Encrypted)
+    require_once BASE_PATH . '/app/Middleware/EncryptionMiddleware.php';
+    EncryptionMiddleware::handleInput();
     
-    if (!empty($raw_input)) {
-        $input_data = json_decode($raw_input, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $input_data = [];
-        }
-    }
-    
-    $_REQUEST['decoded_input'] = $input_data; 
+    // Input already handled by EncryptionMiddleware 
 
     // Routing Logic
     $raw_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -103,4 +97,4 @@ try {
         'message' => $e->getMessage()
     ]);
 }
-?>
+

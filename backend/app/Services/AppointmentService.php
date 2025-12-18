@@ -9,10 +9,12 @@ class AppointmentService {
     }
 
     public function getAllAppointments() {
-        return $this->repo->getAll();
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->getAll($tenantId);
     }
 
     public function createAppointment($data) {
+        $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? 1;
         return $this->repo->create($data);
     }
 }

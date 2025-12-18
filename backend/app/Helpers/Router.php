@@ -42,8 +42,17 @@ class Route {
                 // Middleware Check
                 if (isset($routeConfig['middleware'])) {
                     foreach ($routeConfig['middleware'] as $mw) {
-                        if (class_exists($mw)) {
-                            $mw::handle();
+                        $parts = explode(':', $mw);
+                        $mwClass = $parts[0];
+                        $args = isset($parts[1]) ? explode(',', $parts[1]) : [];
+
+                        if (class_exists($mwClass)) {
+                            // Call handle with parameters if any
+                            $result = empty($args) ? $mwClass::handle() : $mwClass::handle($args);
+                            
+                            if (is_array($result)) {
+                                $_REQUEST['user'] = $result; // specific for AuthMiddleware
+                            }
                         }
                     }
                 }
