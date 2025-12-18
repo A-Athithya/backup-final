@@ -33,6 +33,9 @@ class AuthService {
             $patientService = new PatientService();
             // Pass the same data array, which contains all profile fields
             $patientService->createPatient($data);
+        } elseif ($role === 'admin') {
+            // Admin only exists in users table, no separate profile table needed
+            return $userId;
         } else {
             // Assume it's staff
             require_once __DIR__ . '/StaffService.php';

@@ -42,10 +42,18 @@ class StaffRepository {
     }
 
     // ================= CREATE STAFF =================
+    // ================= CREATE STAFF =================
     public function createDoctor($data) {
         $sql = "INSERT INTO doctors 
                 (name, gender, age, specialization, qualification, experience, contact, email, address, available_days, available_time, status, department, license_number, rating, consultation_fee, bio)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        // Handle availableDays array -> string
+        $availableDays = $data['availableDays'] ?? $data['available_days'] ?? null;
+        if (is_array($availableDays)) {
+            $availableDays = implode(',', $availableDays);
+        }
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
@@ -57,13 +65,13 @@ class StaffRepository {
             $data['contact'] ?? null,
             $data['email'] ?? null,
             $data['address'] ?? null,
-            $data['available_days'] ?? null,
-            $data['available_time'] ?? null,
+            $availableDays,
+            $data['availableTime'] ?? $data['available_time'] ?? null,
             $data['status'] ?? 'Active',
             $data['department'] ?? null,
-            $data['license_number'] ?? null,
+            $data['licenseNumber'] ?? $data['license_number'] ?? null,
             $data['rating'] ?? 0,
-            $data['consultation_fee'] ?? 0,
+            $data['consultationFee'] ?? $data['consultation_fee'] ?? 0,
             $data['bio'] ?? null
         ]);
         return $this->db->lastInsertId();
@@ -78,13 +86,13 @@ class StaffRepository {
             $data['name'],
             $data['gender'] ?? null,
             $data['age'] ?? null,
-            $data['contact'] ?? null,
+            $data['phone'] ?? $data['contact'] ?? null, // Frontend sends 'phone' or 'contact'
             $data['email'] ?? null,
             $data['department'] ?? null,
             $data['shift'] ?? null,
             $data['experience'] ?? null,
             $data['status'] ?? 'Active',
-            $data['date_joined'] ?? date('Y-m-d')
+            $data['dateJoined'] ?? $data['date_joined'] ?? date('Y-m-d')
         ]);
         return $this->db->lastInsertId();
     }
@@ -97,7 +105,7 @@ class StaffRepository {
         $stmt->execute([
             $data['name'],
             $data['email'] ?? null,
-            $data['license_no'] ?? null,
+            $data['licenseNo'] ?? $data['license_no'] ?? null,
             $data['contact'] ?? null,
             $data['experience'] ?? null
         ]);

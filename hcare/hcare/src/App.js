@@ -9,7 +9,7 @@ import MuiProvider from "./mui/MaterialDesign";
 import Layout from "./components/Layout/Layout";
 import IdleTimer from "./components/IdleTimer";
 import { Spin } from "antd";
-import { checkAuthStatus } from "./features/auth/authSlice";
+// import { checkAuthStatus } from "./features/auth/authSlice";
 
 // Direct imports
 import CalendarPage from "./containers/CalendarPage";
@@ -35,9 +35,9 @@ const StaffManagement = lazy(() =>
 const InventoryManagement = lazy(() =>
   import("./components/admin/InventoryManagement")
 );
-const CommunicationPage = lazy(()=> import("./components/communication/CommunicationPage"));
-const AllCommunicationsPage = lazy(()=> import("./components/communication/AllCommunicationsPage"));
-const DoctorCommunications = lazy(()=> import("./components/communication/DoctorCommunications"));
+const CommunicationPage = lazy(() => import("./components/communication/CommunicationPage"));
+const AllCommunicationsPage = lazy(() => import("./components/communication/AllCommunicationsPage"));
+const DoctorCommunications = lazy(() => import("./components/communication/DoctorCommunications"));
 
 // -------------------------------------------
 // PROTECTED ROUTE
@@ -55,10 +55,7 @@ const ProtectedRoute = ({ children }) => {
 export default function App() {
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    // Check authentication status on app load
-    dispatch(checkAuthStatus());
-  }, [dispatch]);
+  /* Persistence check removed as requested */
 
   return (
     <MuiProvider>
@@ -243,7 +240,7 @@ export default function App() {
             }
           />
 
-           {/* Communication */}
+          {/* Communication */}
           <Route
             path="/communicationpage"
             element={
@@ -274,7 +271,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          
+
 
           {/* Default fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
