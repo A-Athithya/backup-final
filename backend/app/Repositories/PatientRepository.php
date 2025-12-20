@@ -9,7 +9,7 @@ class PatientRepository extends BaseRepository {
                    address, registered_date as registeredDate, medical_history as medicalHistory, 
                    allergies, emergency_contact as emergencyContact, status 
             FROM patients 
-            WHERE tenant_id = :tenant_id AND is_deleted = 0
+            WHERE (tenant_id = :tenant_id OR tenant_id IS NULL) AND is_deleted = 0
             ORDER BY created_at DESC
         ");
         $stmt->execute([':tenant_id' => $tenantId]);
@@ -92,5 +92,11 @@ class PatientRepository extends BaseRepository {
         ");
         $stmt->execute([':patient_id' => $patientId, ':tenant_id' => $tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findByEmail($email, $tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM patients WHERE email = :email AND tenant_id = :tenant_id AND is_deleted = 0 LIMIT 1");
+        $stmt->execute([':email' => $email, ':tenant_id' => $tenantId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

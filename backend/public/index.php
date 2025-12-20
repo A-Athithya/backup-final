@@ -25,12 +25,12 @@ try {
     ini_set('display_errors', 0); // Don't print HTML errors
     error_reporting(E_ALL);
 
-    // Define Base Path
-    define('BASE_PATH', __DIR__ . '/..');
+    // Define Base Path - Normalize for Windows
+    define('BASE_PATH', realpath(__DIR__ . '/..'));
 
     // Load Helpers
     if (!file_exists(BASE_PATH . '/app/Helpers/EnvLoader.php')) {
-        throw new Exception("EnvLoader.php not found");
+        throw new Exception("EnvLoader.php not found at " . BASE_PATH . '/app/Helpers/EnvLoader.php');
     }
     require_once BASE_PATH . '/app/Helpers/EnvLoader.php';
     EnvLoader::load(BASE_PATH . '/.env');
@@ -61,8 +61,6 @@ try {
     require_once BASE_PATH . '/app/Middleware/EncryptionMiddleware.php';
     EncryptionMiddleware::handleInput();
     
-    // Input already handled by EncryptionMiddleware 
-
     // Routing Logic
     $raw_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $uri = urldecode($raw_uri);
@@ -75,18 +73,23 @@ try {
     $uri_norm = strtolower($uri);
     
     // Remove script dir from URI
-    if (strpos($uri_norm, $script_name_norm) === 0) {
+    if ($script_name_norm !== '/' && strpos($uri_norm, $script_name_norm) === 0) {
         $len = strlen($script_name_norm);
         $uri = substr($uri, $len);
     }
 
-    $route = trim($uri, '/');
+    $route = trim($uri, "/ \t\n\r\0\x0B");
+    
+    // Support URLs with /api/ prefix (case-insensitive)
+    if (stripos($route, 'api/') === 0) {
+        $route = substr($route, 4);
+    }
 
     // Load Routes
     require_once BASE_PATH . '/app/Routes/api.php';
 
     // Dispatch
-    $method = $_SERVER['REQUEST_METHOD'];
+    $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     Route::dispatch($route, $method);
 
 } catch (Throwable $e) {
@@ -94,7 +97,9 @@ try {
     http_response_code(500);
     echo json_encode([
         'error' => 'Internal Server Error', 
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
     ]);
 }
 

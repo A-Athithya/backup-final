@@ -9,6 +9,11 @@ class CsrfMiddleware {
         return $_SESSION['csrf_token'];
     }
 
+    public static function regenerate() {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        return $_SESSION['csrf_token'];
+    }
+
     public static function handle() {
         $headers = getallheaders();
         $token = $headers['X-CSRF-Token'] ?? $_POST['csrf_token'] ?? null;

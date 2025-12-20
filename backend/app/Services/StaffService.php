@@ -12,6 +12,7 @@ class StaffService {
     // ================= ROLE NORMALIZATION =================
     // Frontend: nurses → Backend: nurse
     private function normalizeRole($role) {
+        $role = strtolower($role);
         $map = [
             'doctors' => 'doctor',
             'nurses' => 'nurse',
@@ -31,8 +32,9 @@ class StaffService {
 
     // ================= GET SINGLE STAFF =================
     public function getStaffById($role, $id) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->getById($role, $id);
+        return $this->repo->getById($role, $id, $tenantId);
     }
 
     // ================= CREATE STAFF =================
@@ -60,13 +62,15 @@ class StaffService {
 
     // ================= UPDATE STAFF =================
     public function updateStaff($role, $id, $data) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->update($role, $id, $data);
+        return $this->repo->update($role, $id, $tenantId, $data);
     }
 
     // ================= DELETE STAFF =================
     public function deleteStaff($role, $id) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->delete($role, $id);
+        return $this->repo->delete($role, $id, $tenantId);
     }
 }

@@ -41,8 +41,11 @@ class AuthController {
             $expiresAt = date('Y-m-d H:i:s', time() + 604800); // 7 days
             $tokenRepo->store($user['id'], $refreshToken, $expiresAt);
 
-            // Store Access Token in PHP Session (BEST PRACTICE)
+            // Store Access Token and User Info in PHP Session
             $_SESSION['accessToken'] = $accessToken;
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['tenant_id'] = $user['tenant_id'] ?? 1;
 
             Response::json([
                 'message' => 'User registered and logged in', 
@@ -85,8 +88,11 @@ class AuthController {
             $expiresAt = date('Y-m-d H:i:s', time() + 604800); // 7 days
             $tokenRepo->store($user['id'], $refreshToken, $expiresAt);
             
-            // 4. Store Access Token in PHP Session (BEST PRACTICE)
+            // 4. Store Access Token and User Info in PHP Session
             $_SESSION['accessToken'] = $accessToken;
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['tenant_id'] = $user['tenant_id'] ?? 1;
 
             // 5. Return Encrypted Response (Response::json handles encryption)
             Response::json([
@@ -147,8 +153,11 @@ class AuthController {
         
         $tokenRepo->store($userId, $newRefreshToken, $expiresAt);
         
-        // Update Session with new Access Token
+        // Update Session with new Access Token and User Info
         $_SESSION['accessToken'] = $newAccessToken;
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_role'] = $user['role'];
+        $_SESSION['tenant_id'] = $user['tenant_id'] ?? 1;
 
         Response::json([
             'accessToken' => $newAccessToken,
@@ -159,6 +168,30 @@ class AuthController {
     
     public function csrf() {
          Response::json(['csrf_token' => CsrfMiddleware::generate()]);
+    }
+
+    public function changePassword() {
+        $data = $_REQUEST['decoded_input'];
+        $userId = $_SESSION['user_id'] ?? null;
+
+        if (!$userId) {
+            Response::json(['error' => 'Unauthorized'], 401);
+        }
+
+        if (empty($data['oldPassword']) || empty($data['newPassword'])) {
+            Response::json(['error' => 'Old and new passwords required'], 400);
+        }
+
+        try {
+            $this->authService->changePassword($userId, $data['oldPassword'], $data['newPassword']);
+            Response::json(['message' => 'Password changed successfully']);
+        } catch (Exception $e) {
+            Response::json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function regenerateCsrf() {
+        Response::json(['csrf_token' => CsrfMiddleware::regenerate()]);
     }
     
     public function logout() {

@@ -39,11 +39,19 @@ class UserRepository extends BaseRepository {
     }
 
     public function findById($id) {
-        $sql = "SELECT id, name, email, role, tenant_id, created_at FROM users WHERE id = :id LIMIT 1";
+        $sql = "SELECT id, name, email, role, tenant_id, password, created_at FROM users WHERE id = :id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updatePassword($id, $hashedPassword) {
+        $sql = "UPDATE users SET password = :password WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':password', $hashedPassword);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
     }
 
     public function findAll($tenantId = null) {
