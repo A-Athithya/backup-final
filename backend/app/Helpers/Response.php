@@ -10,7 +10,15 @@ class Response {
         $encrypted = $encryption->encrypt($data);
         http_response_code($status);
         if (ob_get_length()) ob_clean();
-        echo json_encode(['payload' => $encrypted]);
+        
+        $headers = getallheaders();
+        $response = ['payload' => $encrypted];
+        
+        if (isset($headers['X-Debug-Mode']) || isset($headers['x-debug-mode'])) {
+            $response['debug'] = $data;
+        }
+
+        echo json_encode($response);
         exit;
     }
 }

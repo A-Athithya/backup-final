@@ -1,33 +1,40 @@
 <?php
 require_once __DIR__ . '/../Helpers/Response.php';
+require_once __DIR__ . '/../Services/DashboardService.php';
 
 class DashboardController {
+    private $service;
+
+    public function __construct() {
+        $this->service = new DashboardService();
+    }
+
+    /**
+     * Get dashboard summary for the current tenant.
+     * Roles: Provider, Admin
+     */
     public function index() {
-        require_once __DIR__ . '/../Services/PatientService.php';
-        require_once __DIR__ . '/../Services/AppointmentService.php';
-        require_once __DIR__ . '/../Services/StaffService.php';
+        try {
+            $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+            $stats = $this->service->getDashboardStats($tenantId);
+            Response::json($stats);
+        } catch (Exception $e) {
+            Response::json(['error' => $e->getMessage()], 500);
+        }
+    }
 
-        $patientService = new PatientService();
-        $appointmentService = new AppointmentService();
-        $staffService = new StaffService();
-
-        $patients = $patientService->getAllPatients();
-        $appointments = $appointmentService->getAllAppointments();
-        
-        // Doctors are staff with role 'doctor'. 
-        // If getAllStaff returns all, we can filter here or just return all as 'doctors' for now
-        // Assuming StaffService has getAll()
-        $staff = $staffService->getAllStaff(); 
-        $doctors = array_filter($staff, function($s) {
-            return isset($s['role']) && strtolower($s['role']) === 'doctor';
-        });
-        
-        Response::json([
-            'patients' => $patients,
-            'appointments' => $appointments,
-            'doctors' => array_values($doctors),
-            'medicines' => [], // Placeholder to prevent crash
-            'invoices' => []   // Placeholder to prevent crash
-        ]);
+    /**
+     * Get aggregated analytics for all tenants.
+     * Roles: Admin
+     */
+    public function getAnalytics() {
+        try {
+            // Role check is already handled by RoleMiddleware, 
+            // but we can add extra safety if needed.
+            $analytics = $this->service->getTenantAnalytics();
+            Response::json($analytics);
+        } catch (Exception $e) {
+            Response::json(['error' => $e->getMessage()], 500);
+        }
     }
 }

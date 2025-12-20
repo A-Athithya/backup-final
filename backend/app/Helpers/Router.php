@@ -13,32 +13,38 @@ class Route {
     public static function put($uri, $action, $middleware = []) {
         self::$routes['PUT'][$uri] = ['action' => $action, 'middleware' => $middleware];
     }
+
+    public static function patch($uri, $action, $middleware = []) {
+        self::$routes['PATCH'][$uri] = ['action' => $action, 'middleware' => $middleware];
+    }
     
     public static function delete($uri, $action, $middleware = []) {
         self::$routes['DELETE'][$uri] = ['action' => $action, 'middleware' => $middleware];
     }
 
     public static function dispatch($uri, $method) {
-        // Debug Logging
-        // Debug Logging Removed
-
-        // Check if method exists in routes
         if (!isset(self::$routes[$method])) {
-
             http_response_code(404);
             echo json_encode(['error' => 'Method not allowed']);
             return;
         }
 
         foreach (self::$routes[$method] as $routeUri => $routeConfig) {
-            // Convert {param} to regex
-            $pattern = preg_replace('/\{[a-zA-Z0-9_]+\}/', '([a-zA-Z0-9_]+)', $routeUri);
-            $pattern = "#^" . $pattern . "$#i"; // Added 'i' modifier for case-insensitivity
-            
-            if (preg_match($pattern, $uri, $matches)) {
-                array_shift($matches); // Remove full match
-                
-                // Debug match
+            $matches = [];
+            $isMatch = false;
+
+            if ($uri === $routeUri) {
+                $isMatch = true;
+            } else {
+                $pattern = preg_replace('/\{[a-zA-Z0-9_]+\}/', '([a-zA-Z0-9_]+)', $routeUri);
+                $pattern = "#^" . $pattern . "$#i";
+                if (preg_match($pattern, $uri, $matches)) {
+                    array_shift($matches);
+                    $isMatch = true;
+                }
+            }
+
+            if ($isMatch) {
                 // Middleware Check
                 if (isset($routeConfig['middleware'])) {
                     foreach ($routeConfig['middleware'] as $mw) {
@@ -47,11 +53,9 @@ class Route {
                         $args = isset($parts[1]) ? explode(',', $parts[1]) : [];
 
                         if (class_exists($mwClass)) {
-                            // Call handle with parameters if any
                             $result = empty($args) ? $mwClass::handle() : $mwClass::handle($args);
-                            
                             if (is_array($result)) {
-                                $_REQUEST['user'] = $result; // specific for AuthMiddleware
+                                $_REQUEST['user'] = $result; 
                             }
                         }
                     }
@@ -62,14 +66,18 @@ class Route {
                 require_once BASE_PATH . "/app/Controllers/$controllerName.php";
                 $controller = new $controllerName();
                 
-                // Call method with params
                 call_user_func_array([$controller, $methodName], $matches);
                 return;
             }
         }
 
-
+        // 404 Handler
         http_response_code(404);
-        echo json_encode(['error' => 'Route not found', 'debug_uri' => $uri, 'debug_method' => $method]);
+        echo json_encode([
+            'error' => 'Route not found', 
+            'requested_uri' => $uri, 
+            'requested_method' => $method
+        ]);
+        exit;
     }
 }

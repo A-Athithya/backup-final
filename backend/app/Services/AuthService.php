@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/../Repositories/UserRepository.php';
 require_once __DIR__ . '/../Repositories/TokenRepository.php';
-require_once __DIR__ . '/../Repositories/TokenRepository.php';
 require_once __DIR__ . '/../Config/config.php';
 
 class AuthService {
@@ -22,16 +21,16 @@ class AuthService {
         // 1. Create User
         $userId = $this->userRepo->create($data); // Creates in 'users' table
 
+        if (!$userId) {
+            throw new Exception("Failed to create user record.");
+        }
+
         // 2. Create Role Profile
-        // We need to inject or instantiate services. For simplicity in this non-DI setup, we instantiate here.
-        // In a real app, use dependency injection.
-        
-        $role = $data['role'] ?? 'patient';
+        $role = strtolower($data['role'] ?? 'patient');
 
         if ($role === 'patient') {
             require_once __DIR__ . '/PatientService.php';
             $patientService = new PatientService();
-            // Pass the same data array, which contains all profile fields
             $patientService->createPatient($data);
         } elseif ($role === 'admin') {
             // Admin only exists in users table, no separate profile table needed
@@ -62,5 +61,19 @@ class AuthService {
                 'tenant_id' => $user['tenant_id']
             ]
         ];
+    }
+
+    public function changePassword($userId, $oldPassword, $newPassword) {
+        $user = $this->userRepo->findById($userId);
+        if (!$user) {
+            throw new Exception("User not found");
+        }
+
+        if (!password_verify($oldPassword, $user['password'])) {
+            throw new Exception("Current password incorrect");
+        }
+
+        $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+        return $this->userRepo->updatePassword($userId, $hashedPassword);
     }
 }

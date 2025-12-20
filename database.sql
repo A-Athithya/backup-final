@@ -129,7 +129,7 @@ CREATE TABLE `doctors` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `doctors` 
-(`name`, `email`, `gender`, `age`, `specialization`, `qualification`, `experience`, `contact`, `address`, `available_days`, `available_time`, `status`, `department`, `license_number`, `rating`, `consultation_fee`, `bio`) 
+(`name`, `email`, `gender`, `age`, `specialization`, `qualification`, `experience`, `contact`, `address`, `available_days`, `available_time`, `status`, `department`, `license_number`, `rating`, `consultation_fee`, `bio`, `tenant_id`) 
 VALUES
 ('Dr. Aravind Kumar', 'aravind.kumar@hospital.com', 'Male', 45, 'Cardiologist', 'MBBS, MD', '20 years', '9876510001', '12 MG Road, Chennai', 'Mon,Tue,Thu', '09:00-14:00', 'Active', 'Cardiology', 'TN12345', 4.8, 1500.00, 'Expert in cardiac surgery and patient care.'),
 ('Dr. Meenakshi R', 'meenakshi.r@hospital.com', 'Female', 38, 'Gynecologist', 'MBBS, DGO', '12 years', '9876510002', '34 Park Street, Coimbatore', 'Mon,Wed,Fri', '10:00-16:00', 'Active', 'Gynecology', 'TN12346', 4.6, 1200.00, 'Specialist in women health and maternity care.'),
@@ -202,16 +202,17 @@ CREATE TABLE `pharmacists` (
   `license_no` varchar(100) DEFAULT NULL,
   `contact` varchar(50) DEFAULT NULL,
   `experience` varchar(255) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Active',
   `tenant_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `pharmacists` 
-(`name`, `email`, `license_no`, `contact`, `experience`, `tenant_id`) 
+(`name`, `email`, `license_no`, `contact`, `experience`, `status`, `tenant_id`) 
 VALUES
-('Arun R', 'arun.r@pharmacy.com', 'TNPH001', '9876542001', '7 years', 1),
-('Nithya S', 'nithya.s@pharmacy.com', 'TNPH002', '9876542002', '5 years', 1);
+('Arun R', 'arun.r@pharmacy.com', 'TNPH001', '9876542001', '7 years', 'Active', 1),
+('Nithya S', 'nithya.s@pharmacy.com', 'TNPH002', '9876542002', '5 years', 'Active', 1);
 
 
 -- --------------------------------------------------------
@@ -292,14 +293,24 @@ INSERT INTO `medicines` (`medicine_name`, `description`, `category`, `price`, `s
 DROP TABLE IF EXISTS `prescriptions`;
 CREATE TABLE `prescriptions` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `patient_id` int NOT NULL,
+  `doctor_id` int NOT NULL,
   `appointment_id` int DEFAULT NULL,
-  `medicines` text, -- JSON or comma separated
+  `pharmacist_id` int DEFAULT NULL,
+  `medicines` text, 
   `dosage` text,
   `instructions` text,
-  `date` date DEFAULT NULL,
+  `notes` text,
+  `status` varchar(50) DEFAULT 'Pending',
+  `prescription_date` date DEFAULT NULL,
   `tenant_id` int DEFAULT NULL,
+  `is_deleted` tinyint(1) DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `tenant_id` (`tenant_id`)
+  KEY `tenant_id` (`tenant_id`),
+  KEY `patient_id` (`patient_id`),
+  KEY `doctor_id` (`doctor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -343,6 +354,22 @@ CREATE TABLE `billing` (
   `tenant_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `tenant_id` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Table structure for table `communication_notes`
+DROP TABLE IF EXISTS `communication_notes`;
+CREATE TABLE `communication_notes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `appointment_id` int NOT NULL,
+  `sender_id` int NOT NULL,
+  `sender_role` varchar(50) NOT NULL,
+  `content` text NOT NULL,
+  `tenant_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `appointment_id` (`appointment_id`),
+  KEY `tenant_id` (`tenant_id`),
+  KEY `sender_id` (`sender_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 COMMIT;

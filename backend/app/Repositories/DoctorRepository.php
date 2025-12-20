@@ -10,9 +10,9 @@ class DoctorRepository extends BaseRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = ?");
-        $stmt->execute([$id]);
+    public function getById($id, $tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$id, $tenantId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -29,7 +29,7 @@ class DoctorRepository extends BaseRepository {
         return $stmt->execute($data);
     }
 
-    public function update($id, $data) {
+    public function update($id, $data, $tenantId) {
         $sql = "UPDATE {$this->table} SET
             name=:name, email=:email, gender=:gender, age=:age,
             specialization=:specialization, qualification=:qualification,
@@ -38,14 +38,21 @@ class DoctorRepository extends BaseRepository {
             department=:department, license_number=:license_number,
             rating=:rating, consultation_fee=:consultation_fee,
             bio=:bio, status=:status
-            WHERE id=:id";
+            WHERE id=:id AND tenant_id=:tenant_id";
         $data['id'] = $id;
+        $data['tenant_id'] = $tenantId;
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($data);
     }
 
-    public function delete($id) {
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
-        return $stmt->execute([$id]);
+    public function delete($id, $tenantId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ? AND tenant_id = ?");
+        return $stmt->execute([$id, $tenantId]);
+    }
+
+    public function findByEmail($email, $tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = :email AND tenant_id = :tenant_id LIMIT 1");
+        $stmt->execute([':email' => $email, ':tenant_id' => $tenantId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

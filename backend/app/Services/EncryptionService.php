@@ -4,6 +4,9 @@ class EncryptionService {
     private $key;
 
     public function __construct() {
+        if (!extension_loaded('openssl')) {
+            throw new Exception("The openssl extension is required for encryption/decryption. Please enable it in your php.ini.");
+        }
         $config = require __DIR__ . '/../Config/config.php';
         $this->key = $config['security']['aes_key'];
     }

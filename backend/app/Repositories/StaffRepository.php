@@ -28,16 +28,16 @@ class StaffRepository {
     // ================= GET ALL =================
     public function getAll($role, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("SELECT * FROM $table WHERE tenant_id = ? ORDER BY id DESC");
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE (tenant_id = ? OR tenant_id IS NULL) ORDER BY id DESC");
         $stmt->execute([$tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // ================= GET BY ID =================
-    public function getById($role, $id) {
+    public function getById($role, $id, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("SELECT * FROM $table WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$id, $tenantId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -101,8 +101,8 @@ class StaffRepository {
 
     public function createPharmacist($data) {
         $sql = "INSERT INTO pharmacists 
-                (name, email, license_no, contact, experience, tenant_id)
-                VALUES (?, ?, ?, ?, ?, ?)";
+                (name, email, license_no, contact, experience, status, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
@@ -110,6 +110,7 @@ class StaffRepository {
             $data['licenseNo'] ?? $data['license_no'] ?? null,
             $data['contact'] ?? null,
             $data['experience'] ?? null,
+            $data['status'] ?? 'Active',
             $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
@@ -132,7 +133,7 @@ class StaffRepository {
     }
 
     // ================= UPDATE STAFF =================
-    public function update($role, $id, $data) {
+    public function update($role, $id, $tenantId, $data) {
         $table = $this->getTable($role);
 
         // Map frontend keys to DB columns
@@ -144,7 +145,7 @@ class StaffRepository {
         $allowedColumns = [
             'doctor' => ['name','email','gender','age','specialization','qualification','experience','contact','address','available_days','available_time','status','department','license_number','rating','consultation_fee','bio'],
             'nurse' => ['name','email','gender','age','phone','department','shift','experience','status','date_joined'],
-            'pharmacist' => ['name','email','license_no','contact','experience'],
+            'pharmacist' => ['name','email','license_no','contact','experience','status'],
             'receptionist' => ['name','email','shift','contact','status']
         ];
 
@@ -163,15 +164,16 @@ class StaffRepository {
         }
 
         $values[] = $id;
-        $sql = "UPDATE $table SET " . implode(',', $fields) . " WHERE id = ?";
+        $values[] = $tenantId;
+        $sql = "UPDATE $table SET " . implode(',', $fields) . " WHERE id = ? AND tenant_id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($values);
     }
 
     // ================= DELETE STAFF =================
-    public function delete($role, $id) {
+    public function delete($role, $id, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("DELETE FROM $table WHERE id = ?");
-        return $stmt->execute([$id]);
+        $stmt = $this->db->prepare("DELETE FROM $table WHERE id = ? AND tenant_id = ?");
+        return $stmt->execute([$id, $tenantId]);
     }
 }
