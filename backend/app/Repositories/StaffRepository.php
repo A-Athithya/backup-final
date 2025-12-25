@@ -137,35 +137,70 @@ class StaffRepository {
         $table = $this->getTable($role);
 
         // Map frontend keys to DB columns
-        if (isset($data['contact'])) {
-            $data['contact'] = $data['contact'];
-        }
-
-        // Allowed columns per role
-        $allowedColumns = [
-            'doctor' => ['name','email','gender','age','specialization','qualification','experience','contact','address','available_days','available_time','status','department','license_number','rating','consultation_fee','bio'],
-            'nurse' => ['name','email','gender','age','phone','department','shift','experience','status','date_joined'],
-            'pharmacist' => ['name','email','license_no','contact','experience','status'],
-            'receptionist' => ['name','email','shift','contact','status']
+        $mapping = [
+            'name' => 'name',
+            'email' => 'email',
+            'gender' => 'gender',
+            'age' => 'age',
+            'phone' => 'phone',
+            'contact' => 'contact',
+            'address' => 'address',
+            'department' => 'department',
+            'shift' => 'shift',
+            'experience' => 'experience',
+            'status' => 'status',
+            'licenseNo' => 'license_no',
+            'licenseNumber' => 'license_number',
+            'license_no' => 'license_no',
+            'license_number' => 'license_number',
+            'qualification' => 'qualification',
+            'specialization' => 'specialization',
+            'bloodGroup' => 'blood_group',
+            'dateJoined' => 'date_joined',
+            'dateOfBirth' => 'dob',
+            'dob' => 'dob'
         ];
 
-        $fields = [];
-        $values = [];
+        // Column consistency: phone vs contact varies by table
+        if ($role === 'doctor' || $role === 'pharmacist' || $role === 'receptionist') {
+            $mapping['phone'] = 'contact';
+            $mapping['contact'] = 'contact';
+        } elseif ($role === 'nurse') {
+            $mapping['phone'] = 'phone';
+            $mapping['contact'] = 'phone';
+        }
 
-        foreach ($data as $key => $value) {
-            if ($key !== 'id' && $key !== 'role' && in_array($key, $allowedColumns[$role])) {
-                $fields[] = "$key = ?";
-                $values[] = $value;
+        $columnsToUpdate = [];
+        foreach ($mapping as $frontendKey => $dbCol) {
+            if (isset($data[$frontendKey])) {
+                $columnsToUpdate[$dbCol] = $data[$frontendKey];
             }
         }
 
-        if (empty($fields)) {
-            throw new Exception("No valid fields to update for role: $role");
+        // Calculate Age from dateOfBirth if provided
+        if (isset($data['dateOfBirth']) && $data['dateOfBirth']) {
+            try {
+                $dob = new DateTime($data['dateOfBirth']);
+                $now = new DateTime();
+                $columnsToUpdate['age'] = $now->diff($dob)->y;
+            } catch (Exception $e) {
+                // Ignore invalid date
+            }
+        }
+
+        if (empty($columnsToUpdate)) return false;
+
+        $fields = [];
+        $values = [];
+        foreach ($columnsToUpdate as $col => $val) {
+            $fields[] = "$col = ?";
+            $values[] = $val;
         }
 
         $values[] = $id;
         $values[] = $tenantId;
-        $sql = "UPDATE $table SET " . implode(',', $fields) . " WHERE id = ? AND tenant_id = ?";
+        
+        $sql = "UPDATE $table SET " . implode(', ', $fields) . " WHERE id = ? AND tenant_id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($values);
     }

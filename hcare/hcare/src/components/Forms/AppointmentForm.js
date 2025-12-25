@@ -3,12 +3,17 @@ import { Form, Input, Select, DatePicker, TimePicker, Row, Col, message } from "
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 
-export default function AppointmentForm({ initial = null, onSaved = () => {}, autoFocusPatientId }) {
+export default function AppointmentForm({ initial = null, onSaved = () => { }, autoFocusPatientId }) {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
 
-  const { list: patients } = useSelector((s) => s.patients);
-  const { list: doctors } = useSelector((s) => s.doctors);
+  // ✅ Use Redux selectors with safe defaults
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+
+  const doctorsRaw = useSelector((s) => s.doctors?.list);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+  const { user } = useSelector((state) => state.auth || {});
 
   useEffect(() => {
     if (patients.length === 0) dispatch({ type: "patients/fetchStart" });
@@ -18,10 +23,12 @@ export default function AppointmentForm({ initial = null, onSaved = () => {}, au
   useEffect(() => {
     if (initial) {
       form.setFieldsValue({
-        patientId: initial.patientId,
-        doctorId: initial.doctorId,
-        date: dayjs(initial.appointmentDate),
-        time: initial.appointmentTime ? dayjs(initial.appointmentTime, "hh:mm A") : undefined,
+        patientId: initial.patientId || initial.patient_id,
+        doctorId: initial.doctorId || initial.doctor_id,
+        date: dayjs(initial.appointmentDate || initial.appointment_date),
+        time: (initial.appointmentTime || initial.appointment_time)
+          ? dayjs(initial.appointmentTime || initial.appointment_time, "hh:mm:ss")
+          : undefined,
         reason: initial.reason || "",
         remarks: initial.remarks || "",
         status: initial.status || "Pending",
@@ -29,15 +36,25 @@ export default function AppointmentForm({ initial = null, onSaved = () => {}, au
     } else {
       form.resetFields();
       if (autoFocusPatientId) form.setFieldsValue({ patientId: autoFocusPatientId });
+
+      // Pre-select self if doctor
+      if (user?.role === "doctor" && doctors.length > 0) {
+        const selfDoc = doctors.find(d =>
+          d.email?.toLowerCase() === user.email?.toLowerCase()
+        );
+        if (selfDoc) {
+          form.setFieldsValue({ doctorId: selfDoc.id });
+        }
+      }
     }
-  }, [initial, form, autoFocusPatientId]);
+  }, [initial, form, autoFocusPatientId, user, doctors]);
 
   const onFinish = (vals) => {
     const payload = {
-      patientId: vals.patientId,
-      doctorId: vals.doctorId,
-      appointmentDate: vals.date.format("YYYY-MM-DD"),
-      appointmentTime: vals.time.format("hh:mm A"),
+      patient_id: vals.patientId,
+      doctor_id: vals.doctorId,
+      appointment_date: vals.date.format("YYYY-MM-DD"),
+      appointment_time: vals.time.format("HH:mm:ss"),
       reason: vals.reason,
       remarks: vals.remarks || "",
       status: vals.status || "Pending",
@@ -82,10 +99,11 @@ export default function AppointmentForm({ initial = null, onSaved = () => {}, au
 
         <Col span={8}>
           <Form.Item name="doctorId" label="Doctor" rules={[{ required: true }]} style={{ marginBottom: 8 }}>
-            <Select placeholder="Select doctor">
+            <Select placeholder="Select doctor" disabled={user?.role === "doctor"}>
               {doctors.map((d) => (
                 <Select.Option key={d.id} value={d.id}>
                   {d.name} {d.specialization ? `• ${d.specialization}` : ""}
+                  {user?.role === "doctor" && d.email === user?.email ? " (Me)" : ""}
                 </Select.Option>
               ))}
             </Select>
@@ -108,7 +126,9 @@ export default function AppointmentForm({ initial = null, onSaved = () => {}, au
           <Form.Item name="status" label="Status" style={{ marginBottom: 8 }}>
             <Select>
               <Select.Option value="Pending">Pending</Select.Option>
+              <Select.Option value="Accepted">Accepted</Select.Option>
               <Select.Option value="Completed">Completed</Select.Option>
+              <Select.Option value="Rejected">Rejected</Select.Option>
               <Select.Option value="Cancelled">Cancelled</Select.Option>
             </Select>
           </Form.Item>

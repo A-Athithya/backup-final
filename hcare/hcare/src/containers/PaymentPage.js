@@ -8,8 +8,6 @@ import {
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import dayjs from "dayjs";
-
 const { Title } = Typography;
 const { Option } = Select;
 
@@ -26,34 +24,47 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (invoice) {
+      const balance = (invoice.totalAmount || 0) - (invoice.paidAmount || 0);
       form.setFieldsValue({
-        amount: invoice.balance ?? invoice.amount ?? "",
+        amount: balance > 0 ? balance : 0,
         method: "credit",
       });
     }
   }, [invoice, form]);
 
-  // ✅ FINAL PAYMENT SUBMIT LOGIC (Saga Based)
+  // ✅ Payment logic with partial payment support
   const onFinish = (values) => {
     setLoading(true);
 
+    const paidAmount = Number(values.amount);
+    const totalAmount = Number(invoice?.totalAmount || 0);
+    const existingPaid = Number(invoice?.paidAmount || 0);
+    const newTotalPaid = existingPaid + paidAmount;
+
+    // Calculate status
+    let status = "Unpaid";
+    if (newTotalPaid >= totalAmount) {
+      status = "Paid";
+    } else if (newTotalPaid > 0) {
+      status = "Partial Paid";
+    }
+
     const payload = {
-      patientId: invoice?.patientId,
-      doctorId: invoice?.doctorId,
-      amount: Number(values.amount),
-      method: values.method,
-      status: "Paid",
-      date: dayjs().format("YYYY-MM-DD"),
+      id: invoice?.id,
+      paidAmount: newTotalPaid,
+      status: status
     };
 
     dispatch({
-      type: "payment/createStart",
+      type: "billing/updatePaymentStart",
       payload,
     });
 
-    message.success("Payment Success ✅");
-    navigate("/billing");
-    setLoading(false);
+    message.success(`Payment of ₹${paidAmount} successful! Status: ${status}`);
+    setTimeout(() => {
+      navigate("/billing");
+      setLoading(false);
+    }, 1000);
   };
 
   const renderPaymentFields = () => {

@@ -42,6 +42,24 @@ class StaffService {
         $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? $data['tenant_id'] ?? 1;
         $role = $this->normalizeRole($data['role'] ?? 'doctor');
 
+        // ✅ Create User account for login if password provided
+        if (isset($data['password']) && !empty($data['password'])) {
+            require_once __DIR__ . '/../Repositories/UserRepository.php';
+            $userRepo = new UserRepository();
+            
+            // Link existing user or create new one
+            $existing = $userRepo->findByEmail($data['email']);
+            if (!$existing) {
+                $userRepo->create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => $data['password'], // UserRepo hashes it
+                    'role' => $role,
+                    'tenant_id' => $data['tenant_id']
+                ]);
+            }
+        }
+
         switch ($role) {
             case 'doctor':
                 return $this->repo->createDoctor($data);

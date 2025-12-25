@@ -19,12 +19,15 @@ class RoleMiddleware {
             exit;
         }
 
-        $userRole = $user['role'] ?? null;
+        $userRole = strtolower($user['role'] ?? '');
+        $allowedRoles = array_map('strtolower', $allowedRoles);
 
         if (!$userRole || !in_array($userRole, $allowedRoles)) {
             Response::json([
                 'error' => 'Forbidden',
-                'message' => 'You do not have permission to access this resource.'
+                'message' => 'You do not have permission to access this resource.',
+                'debug_role' => $user['role'],
+                'allowed' => $allowedRoles
             ], 403);
             exit;
         }

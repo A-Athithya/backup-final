@@ -23,7 +23,8 @@ export default function CommunicationPage() {
 
   const commState = useSelector((s) => s.communication || {});
   const {
-    items: communications = [],
+    // items: communications = [], // unused
+    // communications, // removing to fix lint
     patients = [],
     doctors = [],
     prescriptions = [],

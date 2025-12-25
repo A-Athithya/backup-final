@@ -10,7 +10,8 @@ import { Table, Card, Input, Button, Space, Tag, message } from "antd";
 
 export default function Doctors() {
   const dispatch = useDispatch();
-  const { doctors, loading } = useSelector((s) => s.staff);
+  const { doctors: doctorsRaw, loading } = useSelector((s) => s.staff);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
 
   const [mode, setMode] = useState("list"); // list | new | edit | view
   const [selected, setSelected] = useState(null);
@@ -25,7 +26,8 @@ export default function Doctors() {
     experience: "",
     contact: "",
     email: "",
-    status: "",
+    password: "", // Added password field
+    status: "Active",
     address: "",
     bio: "",
   });
@@ -47,7 +49,8 @@ export default function Doctors() {
       experience: "",
       contact: "",
       email: "",
-      status: "",
+      password: "", // Reset password
+      status: "Active",
       address: "",
       bio: "",
     });
@@ -155,8 +158,8 @@ export default function Doctors() {
             {mode === "edit"
               ? "Edit Doctor"
               : mode === "view"
-              ? "Doctor Details"
-              : "Add Doctor"}
+                ? "Doctor Details"
+                : "Add Doctor"}
           </h2>
 
           <form
@@ -176,15 +179,18 @@ export default function Doctors() {
               { label: "Experience", name: "experience" },
               { label: "Contact", name: "contact" },
               { label: "Email", name: "email" },
+              ...(mode === "new" ? [{ label: "Login Password", name: "password", type: "password" }] : []),
               { label: "Status", name: "status" },
             ].map((item) => (
               <div key={item.name}>
                 <label>{item.label}</label>
                 <input
                   name={item.name}
+                  type={item.type || "text"}
                   value={formData[item.name]}
                   onChange={handleChange}
                   readOnly={mode === "view"}
+                  required={item.name === "password" && mode === "new"}
                   style={{
                     width: "100%",
                     padding: 8,

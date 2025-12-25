@@ -6,7 +6,8 @@ class BaseRepository {
     protected $db;
 
     public function __construct() {
-        $this->db = (new Database())->getConnection();
+        $db = new Database();
+        $this->db = $db->getConnection();
     }
 
     public function getDb() {

@@ -19,10 +19,15 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // ✅ Use Redux selectors
-  const { list: appointments } = useSelector((s) => s.appointments);
-  const { list: doctors } = useSelector((s) => s.doctors);
-  const { list: patients } = useSelector((s) => s.patients);
+  // ✅ Use Redux selectors with safe defaults
+  const appointmentsRaw = useSelector((s) => s.appointments?.list);
+  const appointments = Array.isArray(appointmentsRaw) ? appointmentsRaw : [];
+
+  const doctorsRaw = useSelector((s) => s.doctors?.list);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
 
   const [filterDoctor, setFilterDoctor] = useState("all");
 
@@ -36,6 +41,16 @@ const CalendarPage = () => {
     filterDoctor === "all"
       ? appointments
       : appointments.filter((a) => a.doctorId === parseInt(filterDoctor));
+
+  // 🐛 Debug: Log appointments data
+  useEffect(() => {
+    console.log('📅 CalendarPage - appointments:', appointments);
+    console.log('📅 CalendarPage - filtered appointments:', filteredAppointments);
+    console.log('📅 CalendarPage - doctors:', doctors);
+    console.log('📅 CalendarPage - patients:', patients);
+  }, [appointments, filteredAppointments, doctors, patients]);
+
+
 
   const getListData = (value) => {
     const dateStr = value.format("YYYY-MM-DD");

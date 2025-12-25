@@ -17,9 +17,9 @@ import {
 } from "@mui/material";
 import { Lock as LockIcon, Email as EmailIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
-import { loginStart } from "../../features/auth/authSlice";
+import { loginStart, setCsrfToken } from "../../features/auth/authSlice";
 import { useNavigate, Link } from "react-router-dom";
-import api, { setCsrfToken } from "../../api/client";
+import api from "../../api/client";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
@@ -37,7 +37,6 @@ export default function LoginPage() {
     // We use the shared 'api' instance so the Session Cookie is properly set/sent
     api.get("/csrf-token")
       .then(res => {
-        console.log("🔍 CSRF Response Data:", res.data); // Debug full response
 
         let data = res.data;
         if (typeof data === 'string') {
@@ -49,11 +48,10 @@ export default function LoginPage() {
         }
 
         // Response is { csrf_token: "...", payload: "..." }
-        const token = data?.csrf_token;
-        console.log("✅ CSRF token pre-fetched:", token);
+        const token = data?.csrf_token || data?.csrfToken;
 
         if (token) {
-          setCsrfToken(token);
+          dispatch(setCsrfToken(token));
         } else {
           console.warn("⚠️ CSRF Token missing in response!");
         }

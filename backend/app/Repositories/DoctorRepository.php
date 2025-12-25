@@ -5,8 +5,17 @@ class DoctorRepository extends BaseRepository {
     protected $table = 'doctors';
 
     public function getAll($tenantId) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE tenant_id = :tenant_id ORDER BY id DESC");
-        $stmt->execute([':tenant_id' => $tenantId]);
+        $user = $_REQUEST['user'] ?? ['role' => 'unknown', 'id' => 0];
+        $sql = "SELECT * FROM doctors WHERE tenant_id = :tenant_id";
+        $params = [':tenant_id' => $tenantId];
+
+        if (isset($_GET['email'])) {
+            $sql .= " AND email = :email";
+            $params[':email'] = $_GET['email'];
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -30,19 +39,69 @@ class DoctorRepository extends BaseRepository {
     }
 
     public function update($id, $data, $tenantId) {
-        $sql = "UPDATE {$this->table} SET
-            name=:name, email=:email, gender=:gender, age=:age,
-            specialization=:specialization, qualification=:qualification,
-            experience=:experience, contact=:contact, address=:address,
-            available_days=:available_days, available_time=:available_time,
-            department=:department, license_number=:license_number,
-            rating=:rating, consultation_fee=:consultation_fee,
-            bio=:bio, status=:status
-            WHERE id=:id AND tenant_id=:tenant_id";
-        $data['id'] = $id;
-        $data['tenant_id'] = $tenantId;
+        $params = [':id' => $id, ':tenant_id' => $tenantId];
+        
+        $mapping = [
+            'name' => 'name',
+            'email' => 'email',
+            'gender' => 'gender',
+            'age' => 'age',
+            'specialization' => 'specialization',
+            'qualification' => 'qualification',
+            'experience' => 'experience',
+            'contact' => 'contact',
+            'phone' => 'contact',
+            'address' => 'address',
+            'department' => 'department',
+            'licenseNo' => 'license_number',
+            'licenseNumber' => 'license_number',
+            'license_number' => 'license_number',
+            'consultationFee' => 'consultation_fee',
+            'consultation_fee' => 'consultation_fee',
+            'bio' => 'bio',
+            'status' => 'status',
+            'availableTime' => 'available_time',
+            'available_time' => 'available_time',
+            'dateOfBirth' => 'dob',
+            'dob' => 'dob'
+        ];
+
+        $columnsToUpdate = [];
+        foreach ($mapping as $frontendKey => $dbCol) {
+            if (isset($data[$frontendKey])) {
+                $columnsToUpdate[$dbCol] = $data[$frontendKey];
+            }
+        }
+
+        // Calculate Age from dateOfBirth if provided
+        if (isset($data['dateOfBirth']) && $data['dateOfBirth']) {
+            try {
+                $dob = new DateTime($data['dateOfBirth']);
+                $now = new DateTime();
+                $columnsToUpdate['age'] = $now->diff($dob)->y;
+            } catch (Exception $e) {
+                // Ignore invalid date
+            }
+        }
+
+        // Special handling for available days if it's an array
+        if (isset($data['availableDays']) || isset($data['available_days'])) {
+            $days = $data['availableDays'] ?? $data['available_days'];
+            if (is_array($days)) $days = implode(',', $days);
+            $columnsToUpdate['available_days'] = $days;
+        }
+
+        if (empty($columnsToUpdate)) return false;
+
+        $fields = [];
+        foreach ($columnsToUpdate as $col => $val) {
+            $fields[] = "$col = :$col";
+            $params[":$col"] = $val;
+        }
+
+        $sql = "UPDATE doctors SET " . implode(', ', $fields) . " WHERE id = :id AND tenant_id = :tenant_id";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($data);
+        return $stmt->execute($params);
     }
 
     public function delete($id, $tenantId) {

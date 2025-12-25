@@ -16,6 +16,7 @@ class BillingController {
             $data = $this->service->getAllInvoices();
             Response::json($data);
         } catch (Exception $e) {
+            error_log("CRITICAL ERROR in BillingController: " . $e->getMessage());
             Response::json(['error' => $e->getMessage()], 500);
         }
     }
@@ -46,7 +47,7 @@ class BillingController {
     public function updateStatus($id) {
         $data = $_REQUEST['decoded_input'] ?? $_POST;
         $status = $data['status'] ?? null;
-        $paidAmount = $data['paid_amount'] ?? 0;
+        $paidAmount = $data['paidAmount'] ?? $data['paid_amount'] ?? 0;
 
         if (!$status) {
             Response::json(['error' => 'Status is required'], 400);

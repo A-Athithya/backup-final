@@ -10,15 +10,26 @@ class DoctorController {
     }
 
     public function index() {
-        Response::json($this->service->getAllDoctors());
+        try {
+            $data = $this->service->getAllDoctors();
+            Response::json($data);
+        } catch (Exception $e) {
+            error_log("CRITICAL ERROR in DoctorController: " . $e->getMessage());
+            Response::json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function show($id) {
-        $doctor = $this->service->find($id);
-        if (!$doctor) {
-            Response::json(['message' => 'Doctor not found'], 404);
+        try {
+            $doctor = $this->service->find($id);
+            if (!$doctor) {
+                Response::json(['message' => 'Doctor not found'], 404);
+            }
+            Response::json($doctor);
+        } catch (Exception $e) {
+            error_log("DoctorController Error: " . $e->getMessage());
+            Response::json(['error' => $e->getMessage()], 500);
         }
-        Response::json($doctor);
     }
 
     public function store() {

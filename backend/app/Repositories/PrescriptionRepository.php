@@ -31,9 +31,9 @@ class PrescriptionRepository extends BaseRepository {
 
     public function create($data) {
         $sql = "INSERT INTO prescriptions 
-                (patient_id, doctor_id, appointment_id, medicines, dosage, instructions, notes, status, prescription_date, tenant_id) 
+                (patient_id, doctor_id, appointment_id, pharmacist_id, medicines, dosage, instructions, notes, status, prescription_date, tenant_id) 
                 VALUES 
-                (:patient_id, :doctor_id, :appointment_id, :medicines, :dosage, :instructions, :notes, :status, :prescription_date, :tenant_id)";
+                (:patient_id, :doctor_id, :appointment_id, :pharmacist_id, :medicines, :dosage, :instructions, :notes, :status, :prescription_date, :tenant_id)";
         
         $stmt = $this->db->prepare($sql);
         
@@ -41,6 +41,7 @@ class PrescriptionRepository extends BaseRepository {
             ':patient_id' => $data['patientId'] ?? $data['patient_id'] ?? null,
             ':doctor_id' => $data['doctorId'] ?? $data['doctor_id'] ?? null,
             ':appointment_id' => $data['appointmentId'] ?? $data['appointment_id'] ?? null,
+            ':pharmacist_id' => $data['pharmacistId'] ?? $data['pharmacist_id'] ?? null,
             ':medicines' => $data['medicines'] ?? '[]',
             ':dosage' => $data['dosage'] ?? '',
             ':instructions' => $data['instructions'] ?? '',

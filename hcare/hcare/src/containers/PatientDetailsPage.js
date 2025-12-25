@@ -10,8 +10,14 @@ export default function PatientDetailsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { list: patients, loading: patientsLoading } = useSelector((s) => s.patients);
-  const { list: allAppointments, loading: appointmentsLoading } = useSelector((s) => s.appointments);
+  // ✅ Use Redux selectors with safe defaults
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+  const patientsLoading = useSelector((s) => s.patients?.loading) || false;
+
+  const allAppointmentsRaw = useSelector((s) => s.appointments?.list);
+  const allAppointments = Array.isArray(allAppointmentsRaw) ? allAppointmentsRaw : [];
+  const appointmentsLoading = useSelector((s) => s.appointments?.loading) || false;
 
   // Derive data
   const patient = patients.find((p) => String(p.id) === String(id));

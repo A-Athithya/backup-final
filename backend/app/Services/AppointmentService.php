@@ -20,12 +20,12 @@ class AppointmentService {
     public function getAllAppointments() {
         $user = $_REQUEST['user'];
         $tenantId = $user['tenant_id'] ?? 1;
-        $role = $user['role'];
+        $role = strtolower($user['role'] ?? '');
 
-        if ($role === 'Patient') {
+        if ($role === 'patient') {
             $patient = $this->getSelfPatient($user, $tenantId);
             return $this->repo->getAll($tenantId, $patient['id'] ?? -1);
-        } elseif ($role === 'Provider') {
+        } elseif ($role === 'doctor' || $role === 'provider') {
             $doctor = $this->getSelfDoctor($user, $tenantId);
             return $this->repo->getAll($tenantId, null, $doctor['id'] ?? -1);
         }
@@ -43,12 +43,13 @@ class AppointmentService {
         if (!$appointment) return null;
 
         // Role-based access check
-        if ($role === 'Patient') {
+        $role = strtolower($role);
+        if ($role === 'patient') {
             $patient = $this->getSelfPatient($user, $tenantId);
             if ($appointment['patient_id'] != ($patient['id'] ?? -1)) {
                 throw new Exception("Unauthorized access to this appointment.");
             }
-        } elseif ($role === 'Provider') {
+        } elseif ($role === 'doctor' || $role === 'provider') {
             $doctor = $this->getSelfDoctor($user, $tenantId);
             if ($appointment['doctor_id'] != ($doctor['id'] ?? -1)) {
                 throw new Exception("Unauthorized access to this appointment.");
@@ -63,7 +64,8 @@ class AppointmentService {
         $data['tenant_id'] = $user['tenant_id'] ?? 1;
 
         // If patient is booking, force their own ID
-        if ($user['role'] === 'Patient') {
+        $role = strtolower($user['role'] ?? '');
+        if ($role === 'patient') {
             $patient = $this->getSelfPatient($user, $data['tenant_id']);
             $data['patientId'] = $patient['id'];
         }
@@ -133,12 +135,12 @@ class AppointmentService {
     public function getUpcomingAppointments() {
         $user = $_REQUEST['user'];
         $tenantId = $user['tenant_id'] ?? 1;
-        $role = $user['role'];
+        $role = strtolower($user['role'] ?? '');
 
-        if ($role === 'Patient') {
+        if ($role === 'patient') {
             $patient = $this->getSelfPatient($user, $tenantId);
             return $this->repo->getUpcoming($tenantId, $patient['id'] ?? -1);
-        } elseif ($role === 'Provider') {
+        } elseif ($role === 'doctor' || $role === 'provider') {
             $doctor = $this->getSelfDoctor($user, $tenantId);
             return $this->repo->getUpcoming($tenantId, null, $doctor['id'] ?? -1);
         }
@@ -149,12 +151,12 @@ class AppointmentService {
     public function getCalendarAppointments($startDate, $endDate) {
         $user = $_REQUEST['user'];
         $tenantId = $user['tenant_id'] ?? 1;
-        $role = $user['role'];
+        $role = strtolower($user['role'] ?? '');
 
-        if ($role === 'Patient') {
+        if ($role === 'patient') {
             $patient = $this->getSelfPatient($user, $tenantId);
             return $this->repo->getByDateRange($tenantId, $startDate, $endDate, $patient['id'] ?? -1);
-        } elseif ($role === 'Provider') {
+        } elseif ($role === 'doctor' || $role === 'provider') {
             $doctor = $this->getSelfDoctor($user, $tenantId);
             return $this->repo->getByDateRange($tenantId, $startDate, $endDate, null, $doctor['id'] ?? -1);
         }
