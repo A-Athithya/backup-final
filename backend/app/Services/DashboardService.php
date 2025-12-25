@@ -9,14 +9,18 @@ class DashboardService {
     }
 
     public function getDashboardStats($tenantId) {
-        $patientCount = $this->repo->getPatientCount($tenantId);
-        $appointmentStats = $this->repo->getAppointmentStats($tenantId);
-        $prescriptionStats = $this->repo->getPrescriptionStats($tenantId);
+        $patients = $this->repo->getPatients($tenantId);
+        $doctors = $this->repo->getDoctors($tenantId);
+        $appointments = $this->repo->getAppointments($tenantId);
+        $medicines = $this->repo->getMedicines($tenantId);
+        $invoices = $this->repo->getInvoices($tenantId);
 
         return [
-            'total_patients' => $patientCount,
-            'appointments' => $appointmentStats,
-            'prescriptions' => $prescriptionStats,
+            'patients' => $patients,
+            'doctors' => $doctors,
+            'appointments' => $appointments,
+            'medicines' => $medicines,
+            'invoices' => $invoices,
             'timestamp' => date('Y-m-d H:i:s')
         ];
     }

@@ -11,7 +11,7 @@ class Response {
         http_response_code($status);
         if (ob_get_length()) ob_clean();
         
-        $headers = getallheaders();
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
         $response = ['payload' => $encrypted];
         
         if (isset($headers['X-Debug-Mode']) || isset($headers['x-debug-mode'])) {

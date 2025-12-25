@@ -67,19 +67,20 @@ const Dashboard = () => {
   useEffect(() => {
     if (!dashboardStats) return;
 
-    let { patients, doctors, appointments, medicines, invoices } = dashboardStats;
+    let { patients, doctors, appointments, medicines, invoices } = dashboardStats || {};
+
+    if (!Array.isArray(patients)) patients = [];
+    if (!Array.isArray(doctors)) doctors = [];
+    if (!Array.isArray(appointments)) appointments = [];
+    if (!Array.isArray(medicines)) medicines = [];
+    if (!Array.isArray(invoices)) invoices = [];
 
     // Role based filtering (re-implementing logic from original loadStats)
     if (role === "doctor") {
-      doctors = [user];
-      appointments = (appointments || []).filter((a) => a.doctorId == user?.id);
-      invoices = (invoices || []).filter((inv) => inv.doctorId == user?.id);
-      const doctorPatientIds = [...new Set(appointments.map((apt) => apt.patientId))];
-      patients = (patients || []).filter((p) => doctorPatientIds.includes(p.id));
+      // Use clinic totals for doctors, backend already filters appointments/invoices
     } else if (role === "patient") {
       patients = [user];
-      appointments = (appointments || []).filter((a) => a.patientId == user?.id);
-      invoices = (invoices || []).filter((inv) => inv.patientId == user?.id);
+      // appointments and invoices are already filtered by the backend for this patient
     }
 
     setStats({
@@ -87,29 +88,30 @@ const Dashboard = () => {
       doctors: doctors.length,
       appointments: appointments.length,
       medicines: medicines.length,
+      medicinesList: medicines // Add this so we can access it
     });
 
     // Recent Patients
-    const recentP = [...patients].sort((a, b) => new Date(b.registeredDate || 0) - new Date(a.registeredDate || 0)).slice(0, 3);
+    const recentP = [...patients].sort((a, b) => new Date(b.registered_date || b.registeredDate || b.created_at || 0) - new Date(a.registered_date || a.registeredDate || a.created_at || 0)).slice(0, 3);
     setRecentPatients(recentP);
 
     // Recent Appointments
     const mappedAppts = (appointments || []).map((a) => {
-      const patient = patients.find((p) => String(p.id) === String(a.patientId)) || null;
-      return { ...a, patientName: patient?.name || null };
+      const patient = patients.find((p) => String(p.id) === String(a.patient_id || a.patientId)) || null;
+      return { ...a, patientName: patient?.name || a.patient_name || null };
     });
-    const sortedAppts = mappedAppts.sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate));
+    const sortedAppts = mappedAppts.sort((a, b) => new Date(b.appointment_date || b.appointmentDate) - new Date(a.appointment_date || a.appointmentDate));
     setRecentAppointments(sortedAppts.slice(0, 3));
 
     // Filtered lists
     setFilteredAppointments((appointments || []).filter((a) => {
-      const d = dayjs(a.appointmentDate);
-      return d.isAfter(startDate) && d.isBefore(endDate.add(1, "day"));
+      const d = dayjs(a.appointment_date || a.appointmentDate);
+      return d.isAfter(startDate.subtract(1, 'day')) && d.isBefore(endDate.add(1, "day"));
     }));
 
     setFilteredInvoices((invoices || []).filter((invoice) => {
-      const d = dayjs(invoice.invoiceDate);
-      return d.isAfter(startDate) && d.isBefore(endDate.add(1, "day"));
+      const d = dayjs(invoice.invoice_date || invoice.invoiceDate);
+      return d.isAfter(startDate.subtract(1, 'day')) && d.isBefore(endDate.add(1, "day"));
     }));
 
     setLoading(false);
@@ -138,7 +140,7 @@ const Dashboard = () => {
   }
 
   const totalRevenue = filteredInvoices.reduce(
-    (sum, invoice) => sum + (invoice.paidAmount || 0),
+    (sum, invoice) => sum + (Number(invoice.paid_amount || invoice.paidAmount) || 0),
     0
   );
 
@@ -146,23 +148,26 @@ const Dashboard = () => {
   const getStatCards = () => {
     if (role === "doctor") {
       return [
-        { title: "My Patients", value: stats.patients, route: "/patients" },
+        { title: "Total Patients", value: stats.patients, route: "/patients" },
         { title: "My Appointments", value: stats.appointments, route: "/appointments" },
-        { title: "Medicines in Stock", value: stats.medicines, route: "/inventory" },
-        { title: "My Revenue", value: `₹${totalRevenue}`, route: "/billing" },
       ];
     } else if (role === "patient") {
       return [
         { title: "My Appointments", value: stats.appointments, route: "/appointments" },
-        { title: "Medicines in Stock", value: stats.medicines, route: "/inventory" },
         { title: "My Bills", value: `₹${totalRevenue}`, route: "/billing" },
       ];
-    } else if (role === "nurse" || role === "pharmacist") {
+    } else if (role === "pharmacist") {
       return [
         { title: "Total Patients", value: stats.patients, route: "/patients" },
         { title: "Active Doctors", value: stats.doctors, route: "/doctors" },
         { title: "Today's Appointments", value: stats.appointments, route: "/appointments" },
         { title: "Medicines in Stock", value: stats.medicines, route: "/inventory" },
+      ];
+    } else if (role === "nurse") {
+      return [
+        { title: "Total Patients", value: stats.patients, route: "/patients" },
+        { title: "Active Doctors", value: stats.doctors, route: "/doctors" },
+        { title: "Today's Appointments", value: stats.appointments, route: "/appointments" },
       ];
     } else {
       // Admin
@@ -369,6 +374,10 @@ const Dashboard = () => {
         <DashboardCharts
           startDate={dayjs(startDate).format("YYYY-MM-DD")}
           endDate={dayjs(endDate).format("YYYY-MM-DD")}
+          appointments={filteredAppointments} // Use filtered appointments for charts
+          medicines={stats.medicinesList || []} // We need raw list for stock, let's grab it from dashboardStats
+          invoices={filteredInvoices}
+          role={role}
         />
       </Box>
     </Box>

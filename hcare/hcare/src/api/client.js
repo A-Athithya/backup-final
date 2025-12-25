@@ -1,17 +1,20 @@
 import axios from "axios";
 import CryptoJS from "crypto-js";
-import { store } from "../app/store";
+import store from "../app/store";
 import { loginSuccess, logout } from "../features/auth/authSlice";
 
-const API_BASE = "http://localhost/Hcare%20php%20int/backend/public";
-const AES_KEY_STR = "s3cr3t_k3y_for_hc4r3_app_2025!@#";
-const AES_KEY = CryptoJS.enc.Utf8.parse(AES_KEY_STR);
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost/Healthcare/backup-final/backend/public";
+const AES_KEY_STR = process.env.REACT_APP_AES_KEY;
+if (!AES_KEY_STR) {
+  console.error("FATAL: REACT_APP_AES_KEY is missing in environment variables.");
+}
+const AES_KEY = CryptoJS.enc.Utf8.parse(AES_KEY_STR || "");
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
-  // withCredentials: true // JWT doesn't need cookies, but keep for session/csrf if needed
+  withCredentials: true
 });
 
 /* --- Encryption Helpers --- */
@@ -33,8 +36,12 @@ const encryptPayload = (data) => {
 
 const decryptPayload = (encryptedBase64) => {
   try {
+    if (!encryptedBase64 || typeof encryptedBase64 !== "string") return null;
+
     const raw = CryptoJS.enc.Base64.parse(encryptedBase64);
-    const iv = CryptoJS.lib.WordArray.create(raw.words.slice(0, 4), 16); // 16 bytes = 4 words
+    if (raw.sigBytes < 16) return null; // Too short for IV
+
+    const iv = CryptoJS.lib.WordArray.create(raw.words.slice(0, 4), 16);
     const ciphertext = CryptoJS.lib.WordArray.create(raw.words.slice(4), raw.sigBytes - 16);
 
     const decrypted = CryptoJS.AES.decrypt(
@@ -43,11 +50,17 @@ const decryptPayload = (encryptedBase64) => {
       { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
     );
 
-    const str = decrypted.toString(CryptoJS.enc.Utf8);
-    if (!str) return null;
-    return JSON.parse(str);
+    // Try to decode as UTF-8. If it fails (malformed UTF-8), it throws.
+    try {
+      const str = decrypted.toString(CryptoJS.enc.Utf8);
+      if (!str) return null;
+      return JSON.parse(str);
+    } catch (utf8Err) {
+      console.warn("Decryption succeeded but data is not valid UTF-8. Key mismatch or corrupted data.");
+      return null;
+    }
   } catch (e) {
-    console.error("Decryption Failed", e);
+    // console.error("Decryption System Failure", e.message);
     return null;
   }
 };
@@ -94,33 +107,28 @@ api.interceptors.response.use((response) => {
   const originalRequest = error.config;
 
   // Handle 401 & Refresh Token
-  if (error.response?.status === 401 && !originalRequest._retry) {
+  // Exclude login/register from refresh logic
+  if (error.response?.status === 401 && !originalRequest._retry &&
+    !originalRequest.url.includes("/login") &&
+    !originalRequest.url.includes("/register")) {
+    console.log("DEBUG: 401 detected, attempting refresh");
     originalRequest._retry = true;
 
     try {
       const state = store.getState();
-      const refreshToken = state.auth.refreshToken;
+      const csrf = state.auth.csrfToken;
 
-      if (!refreshToken) throw new Error("No refresh token");
-
-      // Call refresh endpoint directly (skip interceptor loop if possible, 
-      // but we need encryption, so use api instance carefully or new instance)
-      // We can use 'api' but ensure we don't loop. 
-      // /refresh-token endpoint usage.
-
-      // Manually construct refresh request to avoid circular deps or complexity
-      // Actually, we can use axios directly or a separate instance.
-      // But for simplicity, let's use 'postData' logic manually.
-
-      // Encryption is needed for the REQUEST too (refreshToken in payload)
-      // Decryption needed for RESPONSE.
-
-      // Let's assume we can use the same encryption helpers.
-      const payload = { refreshToken };
+      // Call refresh endpoint directly using Cookie (withCredentials: true)
+      // We must send encrypted payload even if empty, and CSRF header.
+      const payload = {};
       const encryptedPayload = encryptPayload(payload);
 
       const res = await axios.post(`${API_BASE}/refresh-token`, { payload: encryptedPayload }, {
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrf
+        },
+        withCredentials: true
       });
 
       // Decrypt response
@@ -138,6 +146,7 @@ api.interceptors.response.use((response) => {
       }
 
     } catch (refreshError) {
+      console.error("DEBUG: Refresh failed", refreshError);
       store.dispatch(logout());
       window.location.href = "/login";
     }
@@ -167,6 +176,12 @@ export const postData = async (endpoint, payload) => {
 /* ================= PUT ================= */
 export const putData = async (endpoint, payload) => {
   const res = await api.put(endpoint, payload);
+  return res.data;
+};
+
+/* ================= PATCH ================= */
+export const patchData = async (endpoint, payload) => {
+  const res = await api.patch(endpoint, payload);
   return res.data;
 };
 

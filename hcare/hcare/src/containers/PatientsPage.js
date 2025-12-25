@@ -6,7 +6,10 @@ import { useNavigate } from "react-router-dom";
 export default function PatientsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { list: patients, loading } = useSelector((s) => s.patients);
+  // ✅ Use Redux selectors with safe defaults
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+  const loading = useSelector((s) => s.patients?.loading) || false;
 
   const [filter, setFilter] = useState("");
 
@@ -15,36 +18,36 @@ export default function PatientsPage() {
   }, [dispatch]);
 
 
-const filterText = filter.toLowerCase();
+  const filterText = filter.toLowerCase();
 
-const filtered = patients.filter((p) => {
-  return (
-    p.name?.toLowerCase().includes(filterText) ||
-    p.contact?.toLowerCase().includes(filterText) ||
-    p.gender?.toLowerCase().includes(filterText) ||
-    p.allergies?.toLowerCase().includes(filterText) ||
-    p.bloodGroup?.toLowerCase().includes(filterText)
-  );
-});
+  const filtered = patients.filter((p) => {
+    return (
+      p.name?.toLowerCase().includes(filterText) ||
+      p.contact?.toLowerCase().includes(filterText) ||
+      p.gender?.toLowerCase().includes(filterText) ||
+      p.allergies?.toLowerCase().includes(filterText) ||
+      p.bloodGroup?.toLowerCase().includes(filterText)
+    );
+  });
 
 
-const cols = [
-  { title: "Name", dataIndex: "name" },
-  { title: "Age", dataIndex: "age" },
-  { title: "Gender", dataIndex: "gender" },
-  { title: "Contact", dataIndex: "contact" },
-  { title: "Address", dataIndex: "address" },
-  { title: "Allergies", dataIndex: "allergies" },   // ⭐ NEW COLUMN
+  const cols = [
+    { title: "Name", dataIndex: "name" },
+    { title: "Age", dataIndex: "age" },
+    { title: "Gender", dataIndex: "gender" },
+    { title: "Contact", dataIndex: "contact" },
+    { title: "Address", dataIndex: "address" },
+    { title: "Allergies", dataIndex: "allergies" },   // ⭐ NEW COLUMN
 
-  {
-    title: "Action",
-    render: (_, rec) => (
-      <Button type="link" onClick={() => navigate(`/patients/${rec.id}`)}>
-        View Details
-      </Button>
-    ),
-  },
-];
+    {
+      title: "Action",
+      render: (_, rec) => (
+        <Button type="link" onClick={() => navigate(`/patients/${rec.id}`)}>
+          View Details
+        </Button>
+      ),
+    },
+  ];
 
 
   return (

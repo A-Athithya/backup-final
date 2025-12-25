@@ -10,7 +10,9 @@ import {
   Modal,
   Descriptions,
 } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import InvoiceForm from "../components/Forms/InvoiceForm";
 
 const { Title } = Typography;
 
@@ -18,14 +20,19 @@ export default function BillingPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const invoices = useSelector((s) => s.billing?.list || []);
+  const invoicesRaw = useSelector((s) => s.billing?.list);
+  const invoices = Array.isArray(invoicesRaw) ? invoicesRaw : [];
 
-  // ✅ Use Redux selectors for doctors and patients
-  const { list: doctors } = useSelector((s) => s.doctors);
-  const { list: patients } = useSelector((s) => s.patients);
+  // ✅ Use Redux selectors with safe defaults
+  const doctorsRaw = useSelector((s) => s.doctors?.list);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
   useEffect(() => {
     dispatch({ type: "billing/fetchStart" });
@@ -69,29 +76,40 @@ export default function BillingPage() {
     },
 
     {
-      title: "Amount",
+      title: "Total Amount",
       render: (_, rec) => {
-        // ✅ SAFE OBJECT HANDLING
-        if (typeof rec.amount === "object") {
-          return `₹${rec.amount.amount}`;
-        }
-        return `₹${rec.amount}`;
+        const amount = typeof rec.totalAmount === "object" ? rec.totalAmount.amount : rec.totalAmount;
+        return `₹${amount || 0}`;
+      },
+    },
+
+    {
+      title: "Paid Amount",
+      render: (_, rec) => {
+        const paid = typeof rec.paidAmount === "object" ? rec.paidAmount.amount : rec.paidAmount;
+        return `₹${paid || 0}`;
+      },
+    },
+
+    {
+      title: "Balance",
+      render: (_, rec) => {
+        const total = typeof rec.totalAmount === "object" ? rec.totalAmount.amount : rec.totalAmount;
+        const paid = typeof rec.paidAmount === "object" ? rec.paidAmount.amount : rec.paidAmount;
+        const balance = (total || 0) - (paid || 0);
+        return `₹${balance.toFixed(2)}`;
       },
     },
 
     {
       title: "Status",
       render: (_, rec) => {
-        const status =
-          typeof rec.status === "object"
-            ? rec.status.status
-            : rec.status;
+        const status = typeof rec.status === "object" ? rec.status.status : rec.status;
+        let color = "red";
+        if (status === "Paid") color = "green";
+        else if (status === "Partial Paid") color = "orange";
 
-        return (
-          <Tag color={status === "Paid" ? "green" : "red"}>
-            {status}
-          </Tag>
-        );
+        return <Tag color={color}>{status}</Tag>;
       },
     },
 
@@ -107,7 +125,12 @@ export default function BillingPage() {
 
   return (
     <div>
-      <Title level={2}>Billing</Title>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <Title level={2} style={{ margin: 0 }}>Billing</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)}>
+          Add Invoice
+        </Button>
+      </div>
 
       <Card>
         <Table
@@ -116,6 +139,21 @@ export default function BillingPage() {
           rowKey="id"
         />
       </Card>
+
+      {/* Add Invoice Modal */}
+      <Modal
+        title="Create New Invoice"
+        open={isAddModalVisible}
+        onCancel={() => setIsAddModalVisible(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <InvoiceForm
+          onSaved={() => setIsAddModalVisible(false)}
+          onCancel={() => setIsAddModalVisible(false)}
+        />
+      </Modal>
 
       <Modal
         title="Invoice Details"
@@ -146,16 +184,25 @@ export default function BillingPage() {
               {getDoctorName(selectedInvoice.doctorId)}
             </Descriptions.Item>
 
-            <Descriptions.Item label="Amount">
-              ₹{typeof selectedInvoice.amount === "object"
-                ? selectedInvoice.amount.amount
-                : selectedInvoice.amount}
+            <Descriptions.Item label="Total Amount">
+              ₹{selectedInvoice.totalAmount || 0}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Paid Amount">
+              ₹{selectedInvoice.paidAmount || 0}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Balance">
+              ₹{((selectedInvoice.totalAmount || 0) - (selectedInvoice.paidAmount || 0)).toFixed(2)}
             </Descriptions.Item>
 
             <Descriptions.Item label="Status">
-              {typeof selectedInvoice.status === "object"
-                ? selectedInvoice.status.status
-                : selectedInvoice.status}
+              <Tag color={
+                selectedInvoice.status === "Paid" ? "green" :
+                  selectedInvoice.status === "Partial Paid" ? "orange" : "red"
+              }>
+                {selectedInvoice.status}
+              </Tag>
             </Descriptions.Item>
           </Descriptions>
         )}

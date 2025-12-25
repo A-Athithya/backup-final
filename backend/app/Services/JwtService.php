@@ -31,8 +31,11 @@ class JwtService {
     }
 
     public function validateToken($token) {
+        require_once __DIR__ . '/../Helpers/Log.php';
+        
         $parts = explode('.', $token);
         if (count($parts) !== 3) {
+            Log::error("JwtService: Token format invalid (parts count)", ['count' => count($parts)]);
             return false;
         }
 
@@ -42,11 +45,17 @@ class JwtService {
         $base64ValidSignature = $this->base64UrlEncode($validSignature);
 
         if (!hash_equals($base64ValidSignature, $signature)) {
+            Log::error("JwtService: Signature Mismatch", [
+                'provided' => $signature, 
+                'calculated' => $base64ValidSignature,
+                'secret_preview' => substr($this->secret, 0, 5) . '...' // Security risk but needed for debug
+            ]);
             return false;
         }
 
         $decodedPayload = json_decode($this->base64UrlDecode($payload), true);
         if ($decodedPayload['exp'] < time()) {
+            Log::error("JwtService: Token Expired", ['exp' => $decodedPayload['exp'], 'now' => time()]);
             return false;
         }
 
@@ -59,7 +68,10 @@ class JwtService {
 
     private function base64UrlDecode($data) {
         $urlUnsafeData = str_replace(['-', '_'], ['+', '/'], $data);
-        $paddedData = str_pad($urlUnsafeData, strlen($data) % 4, '=', STR_PAD_RIGHT);
-        return base64_decode($paddedData);
+        $remainder = strlen($urlUnsafeData) % 4;
+        if ($remainder) {
+            $urlUnsafeData .= str_repeat('=', 4 - $remainder);
+        }
+        return base64_decode($urlUnsafeData);
     }
 }

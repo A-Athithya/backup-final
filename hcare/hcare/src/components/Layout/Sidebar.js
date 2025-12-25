@@ -64,8 +64,6 @@ export default function Sidebar() {
       { text: "My Appointments", icon: <EventAvailableIcon />, link: "/appointments" },
       { text: "My Patients", icon: <PeopleIcon />, link: "/patients" },
       { text: "Prescriptions", icon: <ReceiptLongIcon />, link: "/prescriptions" },
-      { text: "Billing", icon: <PaymentIcon />, link: "/billing" },
-      { text: "Inventory", icon: <Inventory />, link: "/inventory" },
       { text: "My Communications", icon: <Communication />, link: "/doctor-communications" },
     ],
     patient: [
@@ -78,7 +76,6 @@ export default function Sidebar() {
       { text: "Patients", icon: <PeopleIcon />, link: "/patients" },
       { text: "Appointments", icon: <EventAvailableIcon />, link: "/appointments" },
       { text: "Prescriptions", icon: <ReceiptLongIcon />, link: "/prescriptions" },
-      { text: "Inventory", icon: <Inventory />, link: "/inventory" },
       { text: "Mycommunications", icon: <Communication />, link: "/communicationpage" },
     ],
   };

@@ -16,8 +16,9 @@ function* fetchAppointments() {
 function* createAppointment(action) {
   try {
     const data = yield call(postData, "/appointments", action.payload);
-    yield put({ type: "appointments/createSuccess", payload: data });
-    // Refresh list? Or just append? Current reducer appends.
+    yield put({ type: "appointments/createSuccess", payload: { ...action.payload, id: data.id } });
+    // Refresh list to get joined names (patient_name, doctor_name)
+    yield put({ type: "appointments/fetchStart" });
   } catch (e) {
     yield put({ type: "appointments/createFailure", payload: e.message });
   }
@@ -40,11 +41,15 @@ function* updateAppointmentStatus(action) {
       payload: updatedAppointment,
     });
 
+    // Refresh list to update any backend calculations or just to be in sync
+    yield put({ type: "appointments/fetchStart" });
+
     // ✅ If Completed → Create Billing Entry
     if (status === "Completed") {
       const billingPayload = {
-        patientId: appointment.patientId,
-        doctorId: appointment.doctorId,
+        patientId: appointment.patientId || appointment.patient_id,
+        doctorId: appointment.doctorId || appointment.doctor_id,
+        appointmentId: appointment.id,
         amount: appointment.consultationFee || 500,
         status: "Unpaid",
         date: new Date().toISOString().split("T")[0],

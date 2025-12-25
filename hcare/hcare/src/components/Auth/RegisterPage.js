@@ -17,13 +17,16 @@ import {
 import { ArrowBack } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
-import api, { postData, getData, setCsrfToken } from "../../api/client";
+import { useDispatch } from "react-redux";
+import { setCsrfToken } from "../../features/auth/authSlice";
+import api, { postData, getData } from "../../api/client";
 import dayjs from "dayjs";
 
 
 export default function RegisterPage() {
   const navigate = useNavigate();
 
+  const dispatch = useDispatch();
   const [role, setRole] = useState("patient");
   const [submitting, setSubmitting] = useState(false);
   const submitLock = useRef(false); // 🔒 double-submit lock
@@ -33,11 +36,12 @@ export default function RegisterPage() {
     // Use shared API client (handles base URL and credentials)
     api.get("/csrf-token")
       .then(res => {
-        console.log("✅ CSRF token pre-fetched for registration:", res.data.csrfToken);
-        setCsrfToken(res.data.csrfToken);
+        const token = res.data.csrfToken || res.data.csrf_token;
+        if (token) {
+          dispatch(setCsrfToken(token));
+        }
       })
       .catch(err => {
-        console.error("❌ Failed to fetch CSRF token:", err);
       });
   }, []);
 
@@ -103,11 +107,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-
-    // Diagnostic Log
-    console.log("Submitting Registration with Token:", api.defaults?.headers?.common?.['X-CSRF-Token'] || "Check Network Payload");
-    // Actually we can't easily access the closed-over csrfToken from client.js here directly unless we import it or check cookie/storage. 
-    // But we can check if the prefetch worked.
 
     // 🔒 HARD LOCK – prevents double execution (React StrictMode)
     if (submitLock.current) return;
@@ -218,13 +217,11 @@ export default function RegisterPage() {
 
       // ✅ Consolidated Registration POST
       const response = await postData("/register", rolePayload);
-      console.log("Registration Response:", response);
 
       message.success("Registered successfully! Please login.");
       navigate("/login");
 
     } catch (err) {
-      console.error("Registration error:", err);
       if (err.response && err.response.data && err.response.data.error) {
         message.error("Registration failed: " + err.response.data.error);
       } else {

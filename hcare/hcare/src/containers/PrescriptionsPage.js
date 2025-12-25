@@ -1,16 +1,26 @@
-// src/containers/PrescriptionsPage.js
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { List, Card, Descriptions, Tag, Divider, Spin } from "antd";
+import { List, Card, Descriptions, Tag, Divider, Spin, Button, Modal } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import PrescriptionForm from "../components/Forms/PrescriptionForm";
 
 export default function PrescriptionsPage() {
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const dispatch = useDispatch();
-  const { list, loading: prescriptionsLoading } = useSelector((s) => s.prescriptions);
-  const { user, role } = useSelector((state) => state.auth);
+  const prescriptionsRaw = useSelector((s) => s.prescriptions?.list);
+  const list = Array.isArray(prescriptionsRaw) ? prescriptionsRaw : [];
+  const prescriptionsLoading = useSelector((s) => s.prescriptions?.loading) || false;
 
-  // ✅ Select doctors and patients from Redux
-  const { list: doctors, loading: doctorsLoading } = useSelector((s) => s.doctors);
-  const { list: patients, loading: patientsLoading } = useSelector((s) => s.patients);
+  const { user } = useSelector((state) => state.auth);
+  const role = user?.role;
+
+  const doctorsRaw = useSelector((s) => s.doctors?.list);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+  const doctorsLoading = useSelector((s) => s.doctors?.loading) || false;
+
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+  const patientsLoading = useSelector((s) => s.patients?.loading) || false;
 
   useEffect(() => {
     // Dispatch fetch actions for data needed (avoid direct getData)
@@ -22,12 +32,12 @@ export default function PrescriptionsPage() {
   }, [dispatch, doctors.length, patients.length]);
 
   const getDoctorName = (doctorId) => {
-    const doc = doctors.find((d) => d.id == doctorId);
+    const doc = doctors.find((d) => String(d.id) === String(doctorId));
     return doc ? doc.name : "Unknown Doctor";
   };
 
   const getPatientName = (patientId) => {
-    const pat = patients.find((p) => p.id == patientId);
+    const pat = patients.find((p) => String(p.id) === String(patientId));
     return pat ? pat.name : "Unknown Patient";
   };
 
@@ -35,7 +45,29 @@ export default function PrescriptionsPage() {
 
   return (
     <div style={{ padding: "12px 24px" }}>
-      <h2 style={{ marginTop: 0, marginBottom: 16 }}>Prescriptions</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>Prescriptions</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+          Add Prescription
+        </Button>
+      </div>
+
+      <Modal
+        title="New Prescription"
+        visible={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={800}
+        destroyOnClose
+      >
+        <PrescriptionForm
+          onSaved={() => {
+            setIsModalVisible(false);
+            dispatch({ type: "prescriptions/fetchStart" }); // Refresh list
+          }}
+          onCancel={() => setIsModalVisible(false)}
+        />
+      </Modal>
 
       <Card>
         {isLoading && <div style={{ textAlign: "center", padding: 20 }}><Spin /></div>}
@@ -51,19 +83,15 @@ export default function PrescriptionsPage() {
                     column={2}
                   >
                     <Descriptions.Item label="Patient">
-                      {getPatientName(prescription.patientId)}
+                      {getPatientName(prescription.patient_id || prescription.patientId)}
                     </Descriptions.Item>
 
                     <Descriptions.Item label="Doctor">
-                      {getDoctorName(prescription.doctorId)}
+                      {getDoctorName(prescription.doctor_id || prescription.doctorId)}
                     </Descriptions.Item>
 
                     <Descriptions.Item label="Prescribed Date">
-                      {prescription.prescribedDate}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Next Follow-up">
-                      {prescription.nextFollowUp}
+                      {prescription.prescription_date || prescription.prescriptionDate}
                     </Descriptions.Item>
 
                     <Descriptions.Item label="Status">
@@ -76,8 +104,30 @@ export default function PrescriptionsPage() {
                       </Tag>
                     </Descriptions.Item>
 
-                    <Descriptions.Item label="Notes">
-                      {prescription.notes}
+                    <Descriptions.Item label="Actions">
+                      {/* Show Dispense button only to Admin & Pharmacist */}
+                      {((role?.toLowerCase() === "pharmacist") || (role?.toLowerCase() === "admin")) && prescription.status === "Active" ? (
+                        <Button
+                          type="primary"
+                          size="small"
+                          style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+                          onClick={() => {
+                            dispatch({
+                              type: "prescriptions/updateStart",
+                              payload: {
+                                id: prescription.id,
+                                data: { status: "Dispensed" },
+                              },
+                            });
+                            // Refresh list after update
+                            setTimeout(() => dispatch({ type: "prescriptions/fetchStart" }), 500);
+                          }}
+                        >
+                          Mark as Dispensed
+                        </Button>
+                      ) : (
+                        "—"
+                      )}
                     </Descriptions.Item>
                   </Descriptions>
 

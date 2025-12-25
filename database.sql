@@ -24,6 +24,8 @@ CREATE TABLE `tenants` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+INSERT INTO `tenants` (`id`, `name`, `domain`) VALUES (1, 'Default Healthcare', 'localhost');
+
 -- --------------------------------------------------------
 
 -- Table structure for table `refresh_tokens`
@@ -85,18 +87,18 @@ CREATE TABLE `patients` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `patients` 
-(`name`, `email`, `phone`, `gender`, `age`, `blood_group`, `address`, `registered_date`, `medical_history`, `allergies`, `emergency_contact`, `status`) 
+(`name`, `email`, `phone`, `gender`, `age`, `blood_group`, `address`, `registered_date`, `medical_history`, `allergies`, `emergency_contact`, `status`, `tenant_id`) 
 VALUES
-('Arjun Kumar', 'arjun.kumar@example.com', '9876501001', 'Male', 28, 'O+', '12 MG Road, Chennai', '2025-12-01', 'None', 'None', 'Ramesh Kumar - 9876501111', 'Active'),
-('Meenakshi R', 'meenakshi.r@example.com', '9876501002', 'Female', 25, 'A+', '34 Park Street, Coimbatore', '2025-12-02', 'Asthma', 'Pollen', 'Vijay R - 9876502222', 'Active'),
-('Karthik V', 'karthik.v@example.com', '9876501003', 'Male', 32, 'B+', '56 Lake Road, Madurai', '2025-12-03', 'Diabetes', 'Sulfa Drugs', 'Aravind V - 9876503333', 'Active'),
-('Divya S', 'divya.s@example.com', '9876501004', 'Female', 27, 'AB+', '78 Hill Street, Salem', '2025-12-04', 'None', 'None', 'Rohini S - 9876504444', 'Active'),
-('Praveen M', 'praveen.m@example.com', '9876501005', 'Male', 35, 'O-', '90 River Lane, Tiruchirappalli', '2025-12-05', 'Hypertension', 'Penicillin', 'Sahana M - 9876505555', 'Active'),
-('Nithya P', 'nithya.p@example.com', '9876501006', 'Female', 26, 'A-', '102 Garden Street, Erode', '2025-12-06', 'None', 'Nuts', 'Karthik P - 9876506666', 'Active'),
-('Suresh K', 'suresh.k@example.com', '9876501007', 'Male', 31, 'B-', '114 Ocean Road, Vellore', '2025-12-07', 'Asthma', 'Dust', 'Mani K - 9876507777', 'Active'),
-('Lakshmi T', 'lakshmi.t@example.com', '9876501008', 'Female', 24, 'AB-', '126 Sunset Boulevard, Thanjavur', '2025-12-08', 'None', 'None', 'Priya T - 9876508888', 'Active'),
-('Ravi R', 'ravi.r@example.com', '9876501009', 'Male', 33, 'O+', '138 Palm Street, Tirunelveli', '2025-12-09', 'Allergy to dust', 'Dust', 'Kumar R - 9876509999', 'Active'),
-('Anitha N', 'anitha.n@example.com', '9876501010', 'Female', 29, 'A+', '150 Rose Avenue, Madurai', '2025-12-10', 'None', 'Penicillin', 'Rahul N - 9876510000', 'Active');
+('Arjun Kumar', 'arjun.kumar@example.com', '9876501001', 'Male', 28, 'O+', '12 MG Road, Chennai', '2025-12-01', 'None', 'None', 'Ramesh Kumar - 9876501111', 'Active', 1),
+('Meenakshi R', 'meenakshi.r@example.com', '9876501002', 'Female', 25, 'A+', '34 Park Street, Coimbatore', '2025-12-02', 'Asthma', 'Pollen', 'Vijay R - 9876502222', 'Active', 1),
+('Karthik V', 'karthik.v@example.com', '9876501003', 'Male', 32, 'B+', '56 Lake Road, Madurai', '2025-12-03', 'Diabetes', 'Sulfa Drugs', 'Aravind V - 9876503333', 'Active', 1),
+('Divya S', 'divya.s@example.com', '9876501004', 'Female', 27, 'AB+', '78 Hill Street, Salem', '2025-12-04', 'None', 'None', 'Rohini S - 9876504444', 'Active', 1),
+('Praveen M', 'praveen.m@example.com', '9876501005', 'Male', 35, 'O-', '90 River Lane, Tiruchirappalli', '2025-12-05', 'Hypertension', 'Penicillin', 'Sahana M - 9876505555', 'Active', 1),
+('Nithya P', 'nithya.p@example.com', '9876501006', 'Female', 26, 'A-', '102 Garden Street, Erode', '2025-12-06', 'None', 'Nuts', 'Karthik P - 9876506666', 'Active', 1),
+('Suresh K', 'suresh.k@example.com', '9876501007', 'Male', 31, 'B-', '114 Ocean Road, Vellore', '2025-12-07', 'Asthma', 'Dust', 'Mani K - 9876507777', 'Active', 1),
+('Lakshmi T', 'lakshmi.t@example.com', '9876501008', 'Female', 24, 'AB-', '126 Sunset Boulevard, Thanjavur', '2025-12-08', 'None', 'None', 'Priya T - 9876508888', 'Active', 1),
+('Ravi R', 'ravi.r@example.com', '9876501009', 'Male', 33, 'O+', '138 Palm Street, Tirunelveli', '2025-12-09', 'Allergy to dust', 'Dust', 'Kumar R - 9876509999', 'Active', 1),
+('Anitha N', 'anitha.n@example.com', '9876501010', 'Female', 29, 'A+', '150 Rose Avenue, Madurai', '2025-12-10', 'None', 'Penicillin', 'Rahul N - 9876510000', 'Active', 1);
 
 
 -- --------------------------------------------------------
@@ -131,16 +133,16 @@ CREATE TABLE `doctors` (
 INSERT INTO `doctors` 
 (`name`, `email`, `gender`, `age`, `specialization`, `qualification`, `experience`, `contact`, `address`, `available_days`, `available_time`, `status`, `department`, `license_number`, `rating`, `consultation_fee`, `bio`, `tenant_id`) 
 VALUES
-('Dr. Aravind Kumar', 'aravind.kumar@hospital.com', 'Male', 45, 'Cardiologist', 'MBBS, MD', '20 years', '9876510001', '12 MG Road, Chennai', 'Mon,Tue,Thu', '09:00-14:00', 'Active', 'Cardiology', 'TN12345', 4.8, 1500.00, 'Expert in cardiac surgery and patient care.'),
-('Dr. Meenakshi R', 'meenakshi.r@hospital.com', 'Female', 38, 'Gynecologist', 'MBBS, DGO', '12 years', '9876510002', '34 Park Street, Coimbatore', 'Mon,Wed,Fri', '10:00-16:00', 'Active', 'Gynecology', 'TN12346', 4.6, 1200.00, 'Specialist in women health and maternity care.'),
-('Dr. Karthik V', 'karthik.v@hospital.com', 'Male', 42, 'Orthopedic', 'MBBS, MS', '15 years', '9876510003', '56 Lake Road, Madurai', 'Tue,Thu,Sat', '09:00-15:00', 'Active', 'Orthopedics', 'TN12347', 4.7, 1300.00, 'Experienced in joint replacement and fracture treatment.'),
-('Dr. Divya S', 'divya.s@hospital.com', 'Female', 35, 'Pediatrician', 'MBBS, DCH', '10 years', '9876510004', '78 Hill Street, Salem', 'Mon-Fri', '09:00-13:00', 'Active', 'Pediatrics', 'TN12348', 4.5, 1000.00, 'Focused on child health and vaccinations.'),
-('Dr. Praveen M', 'praveen.m@hospital.com', 'Male', 50, 'Neurologist', 'MBBS, DM', '25 years', '9876510005', '90 River Lane, Tiruchirappalli', 'Mon,Wed,Fri', '11:00-16:00', 'Active', 'Neurology', 'TN12349', 4.9, 1800.00, 'Specialist in neurological disorders and treatments.'),
-('Dr. Nithya P', 'nithya.p@hospital.com', 'Female', 37, 'Dermatologist', 'MBBS, DDV', '13 years', '9876510006', '102 Garden Street, Erode', 'Tue,Thu', '10:00-14:00', 'Active', 'Dermatology', 'TN12350', 4.6, 1100.00, 'Expert in skin diseases and cosmetic dermatology.'),
-('Dr. Suresh K', 'suresh.k@hospital.com', 'Male', 40, 'ENT Specialist', 'MBBS, MS', '15 years', '9876510007', '114 Ocean Road, Vellore', 'Mon,Wed,Fri', '09:00-14:00', 'Active', 'ENT', 'TN12351', 4.7, 1200.00, 'Specialist in ENT treatments and surgeries.'),
-('Dr. Lakshmi T', 'lakshmi.t@hospital.com', 'Female', 36, 'Ophthalmologist', 'MBBS, DO', '12 years', '9876510008', '126 Sunset Boulevard, Thanjavur', 'Mon-Fri', '09:00-15:00', 'Active', 'Ophthalmology', 'TN12352', 4.5, 1100.00, 'Expert in eye care and vision correction.'),
-('Dr. Ravi R', 'ravi.r@hospital.com', 'Male', 44, 'General Surgeon', 'MBBS, MS', '18 years', '9876510009', '138 Palm Street, Tirunelveli', 'Tue,Thu,Sat', '09:00-15:00', 'Active', 'Surgery', 'TN12353', 4.8, 1400.00, 'Experienced in general surgeries and emergency care.'),
-('Dr. Anitha N', 'anitha.n@hospital.com', 'Female', 39, 'Psychiatrist', 'MBBS, MD', '14 years', '9876510010', '150 Rose Avenue, Madurai', 'Mon,Wed,Fri', '10:00-16:00', 'Active', 'Psychiatry', 'TN12354', 4.6, 1300.00, 'Specialist in mental health and counseling.');
+('Dr. Aravind Kumar', 'aravind.kumar@hospital.com', 'Male', 45, 'Cardiologist', 'MBBS, MD', '20 years', '9876510001', '12 MG Road, Chennai', 'Mon,Tue,Thu', '09:00-14:00', 'Active', 'Cardiology', 'TN12345', 4.8, 1500.00, 'Expert in cardiac surgery and patient care.', 1),
+('Dr. Meenakshi R', 'meenakshi.r@hospital.com', 'Female', 38, 'Gynecologist', 'MBBS, DGO', '12 years', '9876510002', '34 Park Street, Coimbatore', 'Mon,Wed,Fri', '10:00-16:00', 'Active', 'Gynecology', 'TN12346', 4.6, 1200.00, 'Specialist in women health and maternity care.', 1),
+('Dr. Karthik V', 'karthik.v@hospital.com', 'Male', 42, 'Orthopedic', 'MBBS, MS', '15 years', '9876510003', '56 Lake Road, Madurai', 'Tue,Thu,Sat', '09:00-15:00', 'Active', 'Orthopedics', 'TN12347', 4.7, 1300.00, 'Experienced in joint replacement and fracture treatment.', 1),
+('Dr. Divya S', 'divya.s@hospital.com', 'Female', 35, 'Pediatrician', 'MBBS, DCH', '10 years', '9876510004', '78 Hill Street, Salem', 'Mon-Fri', '09:00-13:00', 'Active', 'Pediatrics', 'TN12348', 4.5, 1000.00, 'Focused on child health and vaccinations.', 1),
+('Dr. Praveen M', 'praveen.m@hospital.com', 'Male', 50, 'Neurologist', 'MBBS, DM', '25 years', '9876510005', '90 River Lane, Tiruchirappalli', 'Mon,Wed,Fri', '11:00-16:00', 'Active', 'Neurology', 'TN12349', 4.9, 1800.00, 'Specialist in neurological disorders and treatments.', 1),
+('Dr. Nithya P', 'nithya.p@hospital.com', 'Female', 37, 'Dermatologist', 'MBBS, DDV', '13 years', '9876510006', '102 Garden Street, Erode', 'Tue,Thu', '10:00-14:00', 'Active', 'Dermatology', 'TN12350', 4.6, 1100.00, 'Expert in skin diseases and cosmetic dermatology.', 1),
+('Dr. Suresh K', 'suresh.k@hospital.com', 'Male', 40, 'ENT Specialist', 'MBBS, MS', '15 years', '9876510007', '114 Ocean Road, Vellore', 'Mon,Wed,Fri', '09:00-14:00', 'Active', 'ENT', 'TN12351', 4.7, 1200.00, 'Specialist in ENT treatments and surgeries.', 1),
+('Dr. Lakshmi T', 'lakshmi.t@hospital.com', 'Female', 36, 'Ophthalmologist', 'MBBS, DO', '12 years', '9876510008', '126 Sunset Boulevard, Thanjavur', 'Mon-Fri', '09:00-15:00', 'Active', 'Ophthalmology', 'TN12352', 4.5, 1100.00, 'Expert in eye care and vision correction.', 1),
+('Dr. Ravi R', 'ravi.r@hospital.com', 'Male', 44, 'General Surgeon', 'MBBS, MS', '18 years', '9876510009', '138 Palm Street, Tirunelveli', 'Tue,Thu,Sat', '09:00-15:00', 'Active', 'Surgery', 'TN12353', 4.8, 1400.00, 'Experienced in general surgeries and emergency care.', 1),
+('Dr. Anitha N', 'anitha.n@hospital.com', 'Female', 39, 'Psychiatrist', 'MBBS, MD', '14 years', '9876510010', '150 Rose Avenue, Madurai', 'Mon,Wed,Fri', '10:00-16:00', 'Active', 'Psychiatry', 'TN12354', 4.6, 1300.00, 'Specialist in mental health and counseling.', 1);
 
 
 -- --------------------------------------------------------
@@ -274,17 +276,17 @@ CREATE TABLE `invoices` (
 
 -- --------------------------------------------------------
 -- Sample data for `medicines` table
-INSERT INTO `medicines` (`medicine_name`, `description`, `category`, `price`, `stock`, `expiry_date`) VALUES
-('Paracetamol 500mg', 'Pain reliever and fever reducer', 'Analgesic', 20.00, 150, '2026-12-31'),
-('Amoxicillin 250mg', 'Antibiotic for bacterial infections', 'Antibiotic', 35.00, 100, '2025-11-30'),
-('Cough Syrup', 'Relieves cough and throat irritation', 'Cough & Cold', 45.50, 80, '2026-06-30'),
-('Cetirizine 10mg', 'Antihistamine for allergy relief', 'Allergy', 15.00, 200, '2027-01-15'),
-('Metformin 500mg', 'Used to treat type 2 diabetes', 'Diabetes', 50.00, 120, '2025-09-30'),
-('Vitamin D3 1000 IU', 'Supports bone health', 'Supplement', 25.00, 90, '2026-08-31'),
-('Omeprazole 20mg', 'Reduces stomach acid', 'Gastrointestinal', 40.00, 60, '2025-12-31'),
-('Azithromycin 500mg', 'Antibiotic for infections', 'Antibiotic', 80.00, 70, '2025-10-31'),
-('Ibuprofen 400mg', 'Pain reliever and anti-inflammatory', 'Analgesic', 30.00, 110, '2026-03-31'),
-('Ranitidine 150mg', 'Reduces stomach acid', 'Gastrointestinal', 28.00, 95, '2025-11-30');
+INSERT INTO `medicines` (`medicine_name`, `description`, `category`, `price`, `stock`, `expiry_date`, `tenant_id`) VALUES
+('Paracetamol 500mg', 'Pain reliever and fever reducer', 'Analgesic', 20.00, 150, '2026-12-31', 1),
+('Amoxicillin 250mg', 'Antibiotic for bacterial infections', 'Antibiotic', 35.00, 100, '2025-11-30', 1),
+('Cough Syrup', 'Relieves cough and throat irritation', 'Cough & Cold', 45.50, 80, '2026-06-30', 1),
+('Cetirizine 10mg', 'Antihistamine for allergy relief', 'Allergy', 15.00, 200, '2027-01-15', 1),
+('Metformin 500mg', 'Used to treat type 2 diabetes', 'Diabetes', 50.00, 120, '2025-09-30', 1),
+('Vitamin D3 1000 IU', 'Supports bone health', 'Supplement', 25.00, 90, '2026-08-31', 1),
+('Omeprazole 20mg', 'Reduces stomach acid', 'Gastrointestinal', 40.00, 60, '2025-12-31', 1),
+('Azithromycin 500mg', 'Antibiotic for infections', 'Antibiotic', 80.00, 70, '2025-10-31', 1),
+('Ibuprofen 400mg', 'Pain reliever and anti-inflammatory', 'Analgesic', 30.00, 110, '2026-03-31', 1),
+('Ranitidine 150mg', 'Reduces stomach acid', 'Gastrointestinal', 28.00, 95, '2025-11-30', 1);
 
 
 -- --------------------------------------------------------

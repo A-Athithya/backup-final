@@ -45,7 +45,7 @@ class BillingService {
     public function updateStatus($id, $status, $paidAmount) {
         $tenantId = $this->getTenantId();
         
-        if (!in_array($status, ['Paid', 'Unpaid', 'Partial'])) {
+        if (!in_array($status, ['Paid', 'Unpaid', 'Partial Paid'])) {
             throw new Exception("Invalid status");
         }
 

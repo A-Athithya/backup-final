@@ -4,15 +4,23 @@ require_once 'BaseRepository.php';
 class PatientRepository extends BaseRepository {
 
     public function getAll($tenantId) {
-        $stmt = $this->db->prepare("
-            SELECT id, name, email, phone as contact, gender, age, blood_group as bloodGroup, 
-                   address, registered_date as registeredDate, medical_history as medicalHistory, 
-                   allergies, emergency_contact as emergencyContact, status 
-            FROM patients 
-            WHERE (tenant_id = :tenant_id OR tenant_id IS NULL) AND is_deleted = 0
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([':tenant_id' => $tenantId]);
+        $sql = "SELECT id, name, email, phone as contact, gender, age, blood_group as bloodGroup, 
+                address, registered_date as registeredDate, medical_history as medicalHistory, 
+                allergies, emergency_contact as emergencyContact, status 
+                FROM patients 
+                WHERE (tenant_id = :tenant_id OR tenant_id IS NULL) AND is_deleted = 0";
+        
+        $params = [':tenant_id' => $tenantId];
+
+        if (isset($_GET['email'])) {
+            $sql .= " AND email = :email";
+            $params[':email'] = $_GET['email'];
+        }
+
+        $sql .= " ORDER BY created_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -45,32 +53,56 @@ class PatientRepository extends BaseRepository {
     }
 
     public function update($id, $data, $tenantId) {
-        $fields = [];
         $params = [':id' => $id, ':tenant_id' => $tenantId];
+        $dbUpdates = [];
 
         $mapping = [
             'name' => 'name',
             'email' => 'email',
+            'phone' => 'phone',
             'contact' => 'phone',
             'gender' => 'gender',
             'age' => 'age',
             'bloodGroup' => 'blood_group',
+            'blood_group' => 'blood_group',
             'address' => 'address',
             'registeredDate' => 'registered_date',
+            'registered_date' => 'registered_date',
             'medicalHistory' => 'medical_history',
+            'medical_history' => 'medical_history',
             'allergies' => 'allergies',
             'emergencyContact' => 'emergency_contact',
-            'status' => 'status'
+            'emergency_contact' => 'emergency_contact',
+            'status' => 'status',
+            'dateOfBirth' => 'dob',
+            'dob' => 'dob'
         ];
 
-        foreach ($mapping as $dataKey => $dbCol) {
-            if (isset($data[$dataKey])) {
-                $fields[] = "$dbCol = :$dbCol";
-                $params[":$dbCol"] = $data[$dataKey];
+        $columnsToUpdate = [];
+        foreach ($mapping as $frontendKey => $dbCol) {
+            if (isset($data[$frontendKey])) {
+                $columnsToUpdate[$dbCol] = $data[$frontendKey];
             }
         }
 
-        if (empty($fields)) return false;
+        // Calculate Age from dateOfBirth if provided
+        if (isset($data['dateOfBirth']) && $data['dateOfBirth']) {
+            try {
+                $dob = new DateTime($data['dateOfBirth']);
+                $now = new DateTime();
+                $columnsToUpdate['age'] = $now->diff($dob)->y;
+            } catch (Exception $e) {
+                // Ignore invalid date
+            }
+        }
+
+        if (empty($columnsToUpdate)) return false;
+
+        $fields = [];
+        foreach ($columnsToUpdate as $col => $val) {
+            $fields[] = "$col = :$col";
+            $params[":$col"] = $val;
+        }
 
         $sql = "UPDATE patients SET " . implode(', ', $fields) . " WHERE id = :id AND tenant_id = :tenant_id AND is_deleted = 0";
         $stmt = $this->db->prepare($sql);

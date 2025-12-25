@@ -6,6 +6,43 @@ class DashboardRepository extends BaseRepository {
         parent::__construct();
     }
 
+    public function getPatients($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM patients WHERE tenant_id = :tenant_id AND is_deleted = 0 ORDER BY id DESC LIMIT 50");
+        $stmt->execute([':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getDoctors($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM doctors WHERE tenant_id = :tenant_id");
+        $stmt->execute([':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAppointments($tenantId) {
+        $stmt = $this->db->prepare("
+            SELECT a.*, p.name as patient_name, d.name as doctor_name 
+            FROM appointments a 
+            LEFT JOIN patients p ON a.patient_id = p.id
+            LEFT JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.tenant_id = :tenant_id 
+            ORDER BY a.appointment_date DESC, a.appointment_time ASC LIMIT 50
+        ");
+        $stmt->execute([':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMedicines($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM medicines WHERE tenant_id = :tenant_id OR tenant_id IS NULL");
+        $stmt->execute([':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getInvoices($tenantId) {
+        $stmt = $this->db->prepare("SELECT * FROM invoices WHERE tenant_id = :tenant_id ORDER BY invoice_date DESC LIMIT 100");
+        $stmt->execute([':tenant_id' => $tenantId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getPatientCount($tenantId) {
         $stmt = $this->db->prepare("
             SELECT COUNT(*) FROM patients 
@@ -16,6 +53,8 @@ class DashboardRepository extends BaseRepository {
     }
 
     public function getAppointmentStats($tenantId) {
+        // Keeping this for potential future analytics usage, 
+        // effectively duplicated by getAppointments count but useful for status breakdown
         $stmt = $this->db->prepare("
             SELECT status, COUNT(*) as count 
             FROM appointments 

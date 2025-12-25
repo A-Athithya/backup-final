@@ -19,6 +19,8 @@ class DashboardController {
             $stats = $this->service->getDashboardStats($tenantId);
             Response::json($stats);
         } catch (Exception $e) {
+            require_once __DIR__ . '/../Helpers/Log.php';
+            Log::error("Dashboard Error", ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             Response::json(['error' => $e->getMessage()], 500);
         }
     }
