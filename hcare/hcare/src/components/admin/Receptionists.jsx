@@ -11,7 +11,8 @@ import { Table, Card, Input, Button, Space, Tag, message } from "antd";
 
 export default function Receptionists() {
   const dispatch = useDispatch();
-  const { receptionists, loading } = useSelector((s) => s.staff);
+  const { receptionists: receptionistsRaw, loading } = useSelector((s) => s.staff);
+  const receptionists = Array.isArray(receptionistsRaw) ? receptionistsRaw : [];
 
   const [mode, setMode] = useState("list"); // list | add | edit | view
   const [selected, setSelected] = useState(null);
@@ -22,6 +23,7 @@ export default function Receptionists() {
     email: "",
     contact: "",
     status: "Active",
+    password: "", // Added password field
   });
 
   useEffect(() => {
@@ -126,8 +128,8 @@ export default function Receptionists() {
             {mode === "view"
               ? "View Receptionist"
               : mode === "edit"
-              ? "Edit Receptionist"
-              : "Add Receptionist"}
+                ? "Edit Receptionist"
+                : "Add Receptionist"}
           </h2>
 
           <form
@@ -137,14 +139,23 @@ export default function Receptionists() {
             }}
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
           >
-            {["name","shift","email","contact","status"].map((field) => (
-              <div key={field}>
-                <label>{field.replace("_"," ").toUpperCase()}</label>
+            {[
+              { label: "Name", name: "name" },
+              { label: "Shift", name: "shift" },
+              { label: "Email", name: "email" },
+              { label: "Contact", name: "contact" },
+              ...(mode === "add" ? [{ label: "Login Password", name: "password", type: "password" }] : []),
+              { label: "Status", name: "status" },
+            ].map((item) => (
+              <div key={item.name}>
+                <label>{item.label}</label>
                 <input
-                  name={field}
-                  value={formData[field]}
+                  name={item.name}
+                  type={item.type || "text"}
+                  value={formData[item.name]}
                   onChange={handleChange}
                   readOnly={mode === "view"}
+                  required={item.name === "password" && mode === "add"}
                   style={{ width: "100%", padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
                 />
               </div>
@@ -172,7 +183,7 @@ export default function Receptionists() {
               <p><strong>Shift:</strong> {selected.shift || "-"}</p>
               <p><strong>Email:</strong> {selected.email || "-"}</p>
               <p><strong>Contact:</strong> {selected.contact || "-"}</p>
-              <p><strong>Status:</strong> <Tag color={selected.status === "Active" ? "green":"red"}>{selected.status}</Tag></p>
+              <p><strong>Status:</strong> <Tag color={selected.status === "Active" ? "green" : "red"}>{selected.status}</Tag></p>
             </>
           ) : (
             <p>Fill the form to see preview here...</p>

@@ -12,9 +12,10 @@ import dayjs from "dayjs";
 
 export default function InventoryManagement() {
   const dispatch = useDispatch();
-  const { items = [], loading = false } = useSelector(
+  const { items: itemsRaw = [], loading = false } = useSelector(
     (state) => state.inventory
   );
+  const items = Array.isArray(itemsRaw) ? itemsRaw : [];
 
   const [mode, setMode] = useState("list"); // list | add | edit | view
   const [selected, setSelected] = useState(null);

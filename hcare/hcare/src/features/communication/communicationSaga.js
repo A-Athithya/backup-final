@@ -28,8 +28,8 @@ import {
 /* ------------------- COMMUNICATIONS ------------------- */
 function* fetchCommunicationsSaga(action) {
   try {
-    const query = action.payload?.query || "";
-    const res = yield call(() => getData(`/communications${query}`));
+    // Backend API uses /communication/history for listing
+    const res = yield call(getData, "/communication/history");
     const list = Array.isArray(res) ? res : res ? [res] : [];
     yield put(fetchCommunicationsSuccess(list));
   } catch (err) {
@@ -39,41 +39,51 @@ function* fetchCommunicationsSaga(action) {
 
 function* createCommunicationSaga(action) {
   try {
-    const data = action.payload;
-    const res = yield call(() => postData("/communications", data));
+    const { patientId, doctorId, query, senderId, senderRole } = action.payload;
+
+    // 1. Find latest appointment to attach this note to
+    const appointments = yield call(getData, `/patients/${patientId}/appointments`);
+
+    // Filter by doctor if selected
+    const relAppointment = (appointments || [])
+      .filter(a => String(a.doctorId) === String(doctorId)) // Check if doctorId matches
+      .sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date))[0]; // Latest
+
+    if (!relAppointment) {
+      throw new Error("No appointment found with this doctor.");
+    }
+
+    // 2. Post Note
+    const payload = {
+      appointment_id: relAppointment.id,
+      content: query,
+      sender_id: senderId,
+      sender_role: senderRole
+    };
+
+    const res = yield call(postData, "/communication/notes", payload);
     yield put(createCommunicationSuccess(res));
+
+    // Refresh list
+    yield put(fetchCommunicationsRequest());
+
   } catch (err) {
     yield put(createCommunicationFailure(err.message));
   }
 }
 
 function* updateCommunicationSaga(action) {
-  try {
-    const { id, payload } = action.payload;
-    const existing = yield call(() => getData(`/communications/${id}`));
-    if (!existing) throw new Error("Communication not found");
-    const updated = { ...existing, ...payload };
-    yield call(() => putData(`/communications/${id}`, updated));
-    yield put(updateCommunicationSuccess(updated));
-  } catch (err) {
-    yield put(updateCommunicationFailure(err.message));
-  }
+  // Not implemented in backend yet
 }
 
 function* deleteCommunicationSaga(action) {
-  try {
-    const id = action.payload;
-    yield call(() => deleteData(`/communications/${id}`));
-    yield put(deleteCommunicationSuccess(id));
-  } catch (err) {
-    yield put(deleteCommunicationFailure(err.message));
-  }
+  // Not implemented in backend yet
 }
 
 /* ------------------- PATIENTS ------------------- */
 function* fetchPatientsSaga() {
   try {
-    const res = yield call(() => getData("/patients"));
+    const res = yield call(getData, "/patients");
     yield put(fetchPatientsSuccess(Array.isArray(res) ? res : [res]));
   } catch (err) {
     yield put(fetchPatientsFailure(err.message));
@@ -83,7 +93,7 @@ function* fetchPatientsSaga() {
 /* ------------------- DOCTORS ------------------- */
 function* fetchDoctorsSaga() {
   try {
-    const res = yield call(() => getData("/doctors"));
+    const res = yield call(getData, "/doctors");
     yield put(fetchDoctorsSuccess(Array.isArray(res) ? res : [res]));
   } catch (err) {
     yield put(fetchDoctorsFailure(err.message));
@@ -93,7 +103,7 @@ function* fetchDoctorsSaga() {
 /* ------------------- PRESCRIPTIONS ------------------- */
 function* fetchPrescriptionsSaga() {
   try {
-    const res = yield call(() => getData("/prescriptions"));
+    const res = yield call(getData, "/prescriptions");
     yield put(fetchPrescriptionsSuccess(Array.isArray(res) ? res : [res]));
   } catch (err) {
     yield put(fetchPrescriptionsFailure(err.message));

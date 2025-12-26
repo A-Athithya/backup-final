@@ -78,17 +78,66 @@ class UserController {
     }
 
     public function updateProfile() {
-        $currentUser = $_REQUEST['user'];
+        $currentUser = $_REQUEST['user']; // [sub => id, role => role, tenant_id]
         $data = $_REQUEST['decoded_input'];
-        
-        // Prevent changing role or tenant via profile update
+        $userId = $currentUser['sub'];
+        $role = strtolower($currentUser['role']);
+        $tenantId = $currentUser['tenant_id'] ?? 1;
+
+        // 1. Get current user to have their email
+        $userBase = $this->userRepo->findById($userId);
+        if (!$userBase) {
+            Response::json(['error' => 'User not found'], 404);
+        }
+        $email = $userBase['email'];
+
+        // 2. Prevent changing sensitive info
         unset($data['role']);
         unset($data['tenant_id']);
-        
-        if ($this->userRepo->update($currentUser['sub'], $data)) {
-            Response::json(['message' => 'Profile updated']);
+        unset($data['id']);
+
+        $success = false;
+
+        // 3. Update specialized table based on role
+        if ($role === 'doctor' || $role === 'provider') {
+            require_once __DIR__ . '/../Repositories/DoctorRepository.php';
+            $doctorRepo = new DoctorRepository();
+            $doctor = $doctorRepo->findByEmail($email, $tenantId);
+            if ($doctor) {
+                if ($doctorRepo->update($doctor['id'], $data, $tenantId)) $success = true;
+            }
+        } elseif ($role === 'patient') {
+            require_once __DIR__ . '/../Repositories/PatientRepository.php';
+            $patientRepo = new PatientRepository();
+            $patient = $patientRepo->findByEmail($email, $tenantId);
+            if ($patient) {
+                if ($patientRepo->update($patient['id'], $data, $tenantId)) $success = true;
+            }
+        } elseif (in_array($role, ['nurse', 'pharmacist', 'receptionist', 'staff'])) {
+            require_once __DIR__ . '/../Repositories/StaffRepository.php';
+            require_once __DIR__ . '/../Config/database.php';
+            $staffRepo = new StaffRepository();
+            $table = $role . 's'; 
+            if ($role === 'staff') $table = 'staff'; // Fallback if needed
+            
+            $db = (new Database())->getConnection();
+            $stmt = $db->prepare("SELECT id FROM $table WHERE email = ? AND tenant_id = ?");
+            $stmt->execute([$email, $tenantId]);
+            $staff = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($staff) {
+                if ($staffRepo->update($role, $staff['id'], $tenantId, $data)) $success = true;
+            }
+        }
+
+        // 4. Update base user record (Name/Email)
+        if ($this->userRepo->update($userId, $data)) {
+            $success = true;
+        }
+
+        if ($success) {
+            Response::json(['message' => 'Profile updated successfully']);
         } else {
-            Response::json(['error' => 'Failed to update profile or no changes made'], 400);
+            Response::json(['error' => 'No changes made or update failed'], 400);
         }
     }
 }

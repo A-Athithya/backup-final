@@ -8,37 +8,35 @@ import {
   TextField,
   Button,
   IconButton,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
+  Divider,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
-import api, { postData, getData, setCsrfToken } from "../../api/client";
+import { useDispatch } from "react-redux";
+import { setCsrfToken } from "../../features/auth/authSlice";
+import api, { postData } from "../../api/client";
 import dayjs from "dayjs";
-
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [role, setRole] = useState("patient");
+  // 🔒 ROLE FIXED AS PATIENT (LOGIC UNCHANGED)
+  const [role] = useState("patient");
+
   const [submitting, setSubmitting] = useState(false);
-  const submitLock = useRef(false); // 🔒 double-submit lock
+  const submitLock = useRef(false);
 
-  // ✅ Pre-fetch CSRF token on component mount
+  // ✅ Pre-fetch CSRF token (LOGIC UNCHANGED)
   useEffect(() => {
-    // Use shared API client (handles base URL and credentials)
     api.get("/csrf-token")
       .then(res => {
-        console.log("✅ CSRF token pre-fetched for registration:", res.data.csrfToken);
-        setCsrfToken(res.data.csrfToken);
+        const token = res.data.csrfToken || res.data.csrf_token;
+        if (token) dispatch(setCsrfToken(token));
       })
-      .catch(err => {
-        console.error("❌ Failed to fetch CSRF token:", err);
-      });
+      .catch(() => {});
   }, []);
 
   const [form, setForm] = useState({
@@ -54,45 +52,11 @@ export default function RegisterPage() {
     medicalHistory: "",
     allergies: "",
     emergencyContact: "",
-    specialization: "",
-    qualification: "",
-    experience: "",
-    department: "",
-    licenseNumber: "",
-    rating: 0,
-    consultationFee: 0,
-    bio: "",
-    availableDays: [],
-    availableTime: "",
-    phone: "",
-    shift: "",
-    licenseNo: "",
-    status: "",
+    status: "Active",
   });
 
   const handleField = (k) => (e) =>
     setForm((s) => ({ ...s, [k]: e.target.value }));
-
-  const toggleAvailableDay = (d) => {
-    setForm((s) => {
-      const arr = s.availableDays || [];
-      return {
-        ...s,
-        availableDays: arr.includes(d)
-          ? arr.filter((x) => x !== d)
-          : [...arr, d],
-      };
-    });
-  };
-
-  const sectionForRole = (r) => {
-    if (r === "doctor") return "doctors";
-    if (r === "nurse") return "nurses";
-    if (r === "pharmacist") return "pharmacists";
-    if (r === "receptionist") return "receptionists";
-    if (r === "admin") return "users";
-    return "patients";
-  };
 
   const validateBasic = () => {
     if (!form.name) return message.warning("Name required");
@@ -103,13 +67,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-
-    // Diagnostic Log
-    console.log("Submitting Registration with Token:", api.defaults?.headers?.common?.['X-CSRF-Token'] || "Check Network Payload");
-    // Actually we can't easily access the closed-over csrfToken from client.js here directly unless we import it or check cookie/storage. 
-    // But we can check if the prefetch worked.
-
-    // 🔒 HARD LOCK – prevents double execution (React StrictMode)
     if (submitLock.current) return;
     submitLock.current = true;
 
@@ -121,159 +78,78 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
-      let rolePayload = { ...form, role };
+      const payload = {
+        name: form.name,
+        age: Number(form.age) || "",
+        gender: form.gender,
+        contact: form.contact,
+        email: form.email,
+        password: form.password,
+        role: "patient",
+        address: form.address,
+        bloodGroup: form.bloodGroup,
+        registeredDate: form.registeredDate,
+        medicalHistory: form.medicalHistory,
+        allergies: form.allergies,
+        emergencyContact: form.emergencyContact,
+        status: "Active",
+      };
 
-      if (role === "doctor") {
-        rolePayload = {
-          name: form.name,
-          gender: form.gender,
-          age: Number(form.age) || "",
-          specialization: form.specialization,
-          qualification: form.qualification,
-          experience: form.experience,
-          contact: form.contact,
-          email: form.email,
-          password: form.password,
-          role: "doctor",
-          address: form.address,
-          availableDays: form.availableDays,
-          availableTime: form.availableTime,
-          status: "Active",
-          department: form.department,
-          licenseNumber: form.licenseNumber,
-          rating: Number(form.rating) || 0,
-          consultationFee: Number(form.consultationFee) || 0,
-          bio: form.bio,
-        };
-      }
-
-      if (role === "patient") {
-        rolePayload = {
-          name: form.name,
-          age: Number(form.age) || "",
-          gender: form.gender,
-          contact: form.contact,
-          email: form.email,
-          password: form.password,
-          role: "patient",
-          address: form.address,
-          bloodGroup: form.bloodGroup,
-          registeredDate: form.registeredDate,
-          medicalHistory: form.medicalHistory,
-          allergies: form.allergies,
-          emergencyContact: form.emergencyContact,
-          status: "Active",
-        };
-      }
-
-      if (role === "nurse") {
-        rolePayload = {
-          name: form.name,
-          age: Number(form.age) || "",
-          gender: form.gender,
-          email: form.email,
-          password: form.password,
-          role: "nurse",
-          phone: form.phone || form.contact,
-          department: form.department,
-          shift: form.shift,
-          experience: form.experience,
-          status: "Active",
-          dateJoined: dayjs().format("YYYY-MM-DD"),
-        };
-      }
-
-      if (role === "pharmacist") {
-        rolePayload = {
-          name: form.name,
-          licenseNo: form.licenseNo,
-          email: form.email,
-          password: form.password,
-          role: "pharmacist",
-          contact: form.contact,
-          experience: form.experience,
-        };
-      }
-
-      if (role === "receptionist") {
-        rolePayload = {
-          name: form.name,
-          shift: form.shift,
-          email: form.email,
-          password: form.password,
-          role: "receptionist",
-          contact: form.contact,
-          status: "Active",
-        };
-      }
-
-      if (role === "admin") {
-        rolePayload = {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: "admin",
-        };
-      }
-
-      // ✅ Consolidated Registration POST
-      const response = await postData("/register", rolePayload);
-      console.log("Registration Response:", response);
+      await postData("/register", payload);
 
       message.success("Registered successfully! Please login.");
       navigate("/login");
 
     } catch (err) {
-      console.error("Registration error:", err);
-      if (err.response && err.response.data && err.response.data.error) {
-        message.error("Registration failed: " + err.response.data.error);
-      } else {
-        message.error("Registration failed!");
-      }
+      message.error("Registration failed!");
     } finally {
       setSubmitting(false);
-      submitLock.current = false; // 🔓 unlock after complete
-    };
+      submitLock.current = false;
+    }
   };
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    <Box sx={{ minHeight: "100vh", p: 3, background: "#f3f6ff" }}>
-      <Card sx={{ maxWidth: 1050, mx: "auto", borderRadius: 3, boxShadow: 3 }}>
-        <CardContent sx={{ p: 3 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg,#F6FAFF,#EEF2FF)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: 2,
+      }}
+    >
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 950,
+          borderRadius: 3,
+          boxShadow: "0 10px 35px rgba(0,0,0,0.08)",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+          {/* HEADER */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <IconButton onClick={() => navigate("/login")}>
               <ArrowBack />
             </IconButton>
-            <Typography variant="h5" sx={{ ml: 1, fontWeight: 700 }}>
-              Create Account
-            </Typography>
+            <Box sx={{ ml: 1 }}>
+              <Typography variant="h5" fontWeight={700}>
+                Patient Registration
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Create your patient account to access healthcare services
+              </Typography>
+            </Box>
           </Box>
+
+          <Divider sx={{ mb: 3 }} />
 
           {/* FORM */}
           <Box component="form" onSubmit={onSubmit}>
             <Grid container spacing={2}>
-              {/* ROLE FIRST */}
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={role}
-                    label="Role"
-                    onChange={(e) => setRole(e.target.value)}
-                  >
-                    <MenuItem value="patient">Patient</MenuItem>
-                    <MenuItem value="doctor">Doctor</MenuItem>
-                    <MenuItem value="nurse">Nurse</MenuItem>
-                    <MenuItem value="pharmacist">Pharmacist</MenuItem>
-                    <MenuItem value="receptionist">Receptionist</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* BASIC */}
               {[
                 ["Full Name", "name"],
                 ["Email", "email"],
@@ -294,159 +170,41 @@ export default function RegisterPage() {
                 </Grid>
               ))}
 
-              {/* GENDER */}
               <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Gender</InputLabel>
-                  <Select
-                    value={form.gender}
-                    label="Gender"
-                    onChange={handleField("gender")}
-                  >
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
-                  </Select>
-                </FormControl>
+                <TextField
+                  label="Gender"
+                  fullWidth
+                  value={form.gender}
+                  onChange={handleField("gender")}
+                />
               </Grid>
 
-              {/* PATIENT */}
-              {role === "patient" && (
-                <>
-                  {[
-                    ["Blood Group", "bloodGroup"],
-                    ["Registered Date", "registeredDate"],
-                    ["Medical History", "medicalHistory"],
-                    ["Allergies", "allergies"],
-                    ["Emergency Contact", "emergencyContact"],
-                  ].map(([label, key]) => (
-                    <Grid item xs={12} sm={6} md={4} key={key}>
-                      <TextField
-                        label={label}
-                        fullWidth
-                        value={form[key]}
-                        onChange={handleField(key)}
-                      />
-                    </Grid>
-                  ))}
-                </>
-              )}
+              {[
+                ["Blood Group", "bloodGroup"],
+                ["Registered Date", "registeredDate"],
+                ["Medical History", "medicalHistory"],
+                ["Allergies", "allergies"],
+                ["Emergency Contact", "emergencyContact"],
+              ].map(([label, key]) => (
+                <Grid item xs={12} sm={6} md={4} key={key}>
+                  <TextField
+                    label={label}
+                    fullWidth
+                    value={form[key]}
+                    onChange={handleField(key)}
+                  />
+                </Grid>
+              ))}
 
-              {/* DOCTOR */}
-              {role === "doctor" && (
-                <>
-                  {[
-                    ["Specialization", "specialization"],
-                    ["Qualification", "qualification"],
-                    ["Experience", "experience"],
-                    ["Department", "department"],
-                    ["License Number", "licenseNumber"],
-                    ["Consultation Fee", "consultationFee", "number"],
-                  ].map(([label, key, type]) => (
-                    <Grid item xs={12} sm={6} md={4} key={key}>
-                      <TextField
-                        label={label}
-                        type={type || "text"}
-                        fullWidth
-                        value={form[key]}
-                        onChange={handleField(key)}
-                      />
-                    </Grid>
-                  ))}
-
-                  {/* Available Days */}
-                  <Grid item xs={12}>
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {weekDays.map((d) => (
-                        <Chip
-                          key={d}
-                          label={d}
-                          clickable
-                          color={
-                            form.availableDays.includes(d)
-                              ? "primary"
-                              : "default"
-                          }
-                          onClick={() => toggleAvailableDay(d)}
-                        />
-                      ))}
-                    </Box>
-                  </Grid>
-
-                  {/* Available Time */}
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField
-                      label="Available Time"
-                      fullWidth
-                      value={form.availableTime}
-                      onChange={handleField("availableTime")}
-                    />
-                  </Grid>
-                </>
-              )}
-
-              {/* NURSE */}
-              {role === "nurse" && (
-                <>
-                  {[
-                    ["Department", "department"],
-                    ["Shift", "shift"],
-                    ["Phone", "phone"],
-                  ].map(([label, key]) => (
-                    <Grid item xs={12} sm={6} md={4} key={key}>
-                      <TextField
-                        label={label}
-                        fullWidth
-                        value={form[key]}
-                        onChange={handleField(key)}
-                      />
-                    </Grid>
-                  ))}
-                </>
-              )}
-
-              {/* PHARMACIST */}
-              {role === "pharmacist" && (
-                <>
-                  {[
-                    ["License No", "licenseNo"],
-                    ["Experience", "experience"],
-                  ].map(([label, key]) => (
-                    <Grid item xs={12} sm={6} md={4} key={key}>
-                      <TextField
-                        label={label}
-                        fullWidth
-                        value={form[key]}
-                        onChange={handleField(key)}
-                      />
-                    </Grid>
-                  ))}
-                </>
-              )}
-
-              {/* RECEPTIONIST */}
-              {role === "receptionist" && (
-                <>
-                  {[
-                    ["Shift", "shift"],
-                    ["Status", "status"],
-                  ].map(([label, key]) => (
-                    <Grid item xs={12} sm={6} md={4} key={key}>
-                      <TextField
-                        label={label}
-                        fullWidth
-                        value={form[key]}
-                        onChange={handleField(key)}
-                      />
-                    </Grid>
-                  ))}
-                </>
-              )}
-
-              {/* BUTTONS */}
+              {/* ACTIONS */}
               <Grid item xs={12}>
                 <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
+                  sx={{
+                    mt: 2,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 2,
+                  }}
                 >
                   <Button
                     variant="outlined"
@@ -454,7 +212,12 @@ export default function RegisterPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" variant="contained" disabled={submitting}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={submitting}
+                    sx={{ px: 4 }}
+                  >
                     {submitting ? "Registering..." : "Register"}
                   </Button>
                 </Box>

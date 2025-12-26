@@ -14,7 +14,8 @@ class DoctorService {
     }
 
     public function find($id) {
-        return $this->repo->getById($id);
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->getById($id, $tenantId);
     }
 
     public function createDoctor($data) {
@@ -23,10 +24,12 @@ class DoctorService {
     }
 
     public function update($id, $data) {
-        return $this->repo->update($id, $data);
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->update($id, $data, $tenantId);
     }
 
     public function delete($id) {
-        return $this->repo->delete($id);
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
+        return $this->repo->delete($id, $tenantId);
     }
 }

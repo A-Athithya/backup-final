@@ -8,7 +8,6 @@ import {
   TextField,
   Button,
   Avatar,
-  Paper,
   FormControl,
   InputLabel,
   Select,
@@ -17,9 +16,9 @@ import {
 } from "@mui/material";
 import { Lock as LockIcon, Email as EmailIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
-import { loginStart } from "../../features/auth/authSlice";
+import { loginStart, setCsrfToken } from "../../features/auth/authSlice";
 import { useNavigate, Link } from "react-router-dom";
-import api, { setCsrfToken } from "../../api/client";
+import api from "../../api/client";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
@@ -32,35 +31,22 @@ export default function LoginPage() {
     role: "admin",
   });
 
-  // ✅ Pre-fetch CSRF token using shared API client (withCredentials: true)
+  // ✅ Pre-fetch CSRF token (LOGIC UNCHANGED)
   useEffect(() => {
-    // We use the shared 'api' instance so the Session Cookie is properly set/sent
     api.get("/csrf-token")
       .then(res => {
-        console.log("🔍 CSRF Response Data:", res.data); // Debug full response
-
         let data = res.data;
-        if (typeof data === 'string') {
+        if (typeof data === "string") {
           try {
             data = JSON.parse(data);
           } catch (e) {
             console.error("Failed to parse CSRF response:", e);
           }
         }
-
-        // Response is { csrf_token: "...", payload: "..." }
-        const token = data?.csrf_token;
-        console.log("✅ CSRF token pre-fetched:", token);
-
-        if (token) {
-          setCsrfToken(token);
-        } else {
-          console.warn("⚠️ CSRF Token missing in response!");
-        }
+        const token = data?.csrf_token || data?.csrfToken;
+        if (token) dispatch(setCsrfToken(token));
       })
-      .catch(err => {
-        console.error("❌ Failed to fetch CSRF token:", err);
-      });
+      .catch(err => console.error("❌ Failed to fetch CSRF token:", err));
   }, []);
 
   useEffect(() => {
@@ -94,98 +80,40 @@ export default function LoginPage() {
     >
       <Grid
         container
-        spacing={3}
-        sx={{
-          width: "70%",
-          maxWidth: 900,
-          alignItems: "stretch",
-        }}
+        justifyContent="center"
+        alignItems="center"
       >
-        {/* LEFT SECTION - DEMO INFO */}
-        <Grid
-          item
-          xs={12}
-          md={5}
-          sx={{
-            display: { xs: "none", md: "flex" },
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Paper
-            elevation={1}
+        {/* CENTERED LOGIN CARD */}
+        <Grid item xs={12} sm={8} md={5} lg={4}>
+          <Card
             sx={{
-              p: 4,
-              width: "100%",
               borderRadius: 3,
-              bgcolor: "white",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
             }}
           >
-            <Box sx={{ textAlign: "center" }}>
-              <Avatar
-                sx={{
-                  width: 80,
-                  height: 80,
-                  bgcolor: "#1976d2",
-                  mx: "auto",
-                  mb: 2,
-                }}
-              >
-                <LockIcon sx={{ fontSize: 40 }} />
-              </Avatar>
-
-              <Typography variant="h5" fontWeight={300} sx={{ mb: 1 }}>
-                Welcome to HealthTool
-              </Typography>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: "#F9FBFF",
-                  border: "1px solid rgba(25,118,210,0.15)",
-                  textAlign: "left",
-                }}
-              >
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
-                  Demo Credentials
-                </Typography>
-
-                <Typography variant="body2"><strong>Admin:</strong> admin@hospital.com / admin123</Typography>
-                <Typography variant="body2"><strong>Doctor:</strong> asha.r@gmail.com / Asha@2024</Typography>
-                <Typography variant="body2"><strong>Nurse:</strong> priya.raj@gmail.com / nurse123</Typography>
-                <Typography variant="body2"><strong>Pharmacist:</strong> sameer.pharma@example.com / pharma123</Typography>
-                <Typography variant="body2"><strong>Receptionist:</strong> riya.sharma@example.com / recep123</Typography>
-                <Typography variant="body2"><strong>Patient:</strong> aarav.kumar@gmail.com / Aarav@2024</Typography>
-              </Paper>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* RIGHT SECTION - LOGIN FORM */}
-        <Grid item xs={12} md={7}>
-          <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
             <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-              <Box sx={{ textAlign: "center", mb: 3 }}>
+              <Box sx={{ textAlign: "center", mb: 4 }}>
                 <Avatar
                   sx={{
-                    width: 60,
-                    height: 60,
+                    width: 64,
+                    height: 64,
                     bgcolor: "#1976d2",
                     mx: "auto",
-                    mb: 1,
+                    mb: 1.5,
                   }}
                 >
-                  <LockIcon />
+                  <LockIcon fontSize="large" />
                 </Avatar>
 
                 <Typography variant="h5" fontWeight={700}>
                   Sign In
                 </Typography>
 
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Enter your role & credentials
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mt: 0.5 }}
+                >
+                  Access your healthcare dashboard
                 </Typography>
               </Box>
 
@@ -205,7 +133,7 @@ export default function LoginPage() {
                   >
                     {roles.map((r) => (
                       <MenuItem key={r.value} value={r.value}>
-                        {r.icon} &nbsp; {r.label}
+                        {r.label}
                       </MenuItem>
                     ))}
                   </Select>
@@ -245,26 +173,29 @@ export default function LoginPage() {
                   fullWidth
                   disabled={loading}
                   sx={{
-                    py: 1.3,
+                    py: 1.4,
                     mt: 1,
                     fontWeight: 600,
                     borderRadius: 2,
-                    background: "linear-gradient(90deg,#1976d2,#1e88e5)",
+                    background:
+                      "linear-gradient(90deg,#1976d2,#1e88e5)",
                   }}
                 >
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
+
                 <Box
                   sx={{
                     mt: 2,
                     display: "flex",
-                    justifyContent: "flex-start",  // LEFT SIDE
+                    justifyContent: "center",
                     alignItems: "center",
-                    gap: 0,                      // small space between them
+                    gap: 1,
                   }}
                 >
-                  <Typography variant="body2">New user?</Typography>
-
+                  <Typography variant="body2">
+                    New user?
+                  </Typography>
                   <Link to="/register" style={{ textDecoration: "none" }}>
                     <Button size="small">Create Account</Button>
                   </Link>

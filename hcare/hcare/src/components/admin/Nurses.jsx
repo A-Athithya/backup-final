@@ -11,7 +11,8 @@ import { Table, Card, Input, Button, Space, Tag, message } from "antd";
 
 export default function Nurses() {
   const dispatch = useDispatch();
-  const { nurses, loading } = useSelector((s) => s.staff);
+  const { nurses: nursesRaw, loading } = useSelector((s) => s.staff);
+  const nurses = Array.isArray(nursesRaw) ? nursesRaw : [];
 
   const [mode, setMode] = useState("list"); // list | new | edit | view
   const [selected, setSelected] = useState(null);
@@ -27,6 +28,7 @@ export default function Nurses() {
     experience: "",
     date_joined: "",
     status: "Active",
+    password: "", // Added password field for login
   });
 
   const initialForm = { ...formData };
@@ -152,15 +154,18 @@ export default function Nurses() {
               { label: "Shift", name: "shift" },
               { label: "Experience", name: "experience" },
               { label: "Date Joined", name: "date_joined" },
+              ...(mode === "new" ? [{ label: "Login Password", name: "password", type: "password" }] : []),
               { label: "Status", name: "status" },
             ].map((item) => (
               <div key={item.name}>
                 <label>{item.label}</label>
                 <input
                   name={item.name}
+                  type={item.type || "text"}
                   value={formData[item.name] || ""}
                   onChange={handleChange}
                   readOnly={mode === "view"}
+                  required={item.name === "password" && mode === "new"}
                   style={{
                     width: "100%",
                     padding: 8,
@@ -198,16 +203,18 @@ export default function Nurses() {
           {selected || mode === "new" ? (
             <>
               <h3>{mode === "new" ? "New Nurse" : "Nurse Preview"}</h3>
-              {Object.entries(formData).map(([key, val]) => (
-                <p key={key}>
-                  <strong>{key.replace("_", " ").toUpperCase()}:</strong>{" "}
-                  {key === "status" ? (
-                    <Tag color={val === "Active" ? "green" : "red"}>{val}</Tag>
-                  ) : (
-                    val || "—"
-                  )}
-                </p>
-              ))}
+              {Object.entries(formData)
+                .filter(([key]) => key !== "password")
+                .map(([key, val]) => (
+                  <p key={key}>
+                    <strong>{key.replace("_", " ").toUpperCase()}:</strong>{" "}
+                    {key === "status" ? (
+                      <Tag color={val === "Active" ? "green" : "red"}>{val}</Tag>
+                    ) : (
+                      val || "—"
+                    )}
+                  </p>
+                ))}
             </>
           ) : (
             <p>Fill the form to see preview here...</p>

@@ -9,8 +9,10 @@ export default function PatientFormPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // ✅ Use Redux selector
-  const { list: patients, loading: patientsLoading } = useSelector((s) => s.patients);
+  // ✅ Use Redux selector with safe defaults
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+  const patientsLoading = useSelector((s) => s.patients?.loading) || false;
 
   const [initial, setInitial] = useState(null);
   const formRef = useRef();

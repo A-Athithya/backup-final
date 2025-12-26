@@ -35,23 +35,12 @@ const RichTooltip = ({ active, payload, label }) => {
 
 const COLORS = ["#4982c9ff", "#4caf82", "#f2a65a", "#e36464", "#9aa5b1"];
 
-export default function DashboardCharts({ startDate, endDate }) {
-  const dispatch = useDispatch();
-
-  // ✅ Redux selectors with safe defaults
-  const { list: appointments = [], loading: appointmentsLoading = false } = useSelector((s) => s.appointments || {});
-  const { list: medicines = [], loading: medicinesLoading = false } = useSelector((s) => s.inventory || {});
-
-  const loading = appointmentsLoading || medicinesLoading;
+export default function DashboardCharts({ startDate, endDate, appointments = [], medicines = [], invoices = [], role }) {
 
   const start = dayjs(startDate);
   const end = dayjs(endDate);
 
-  // Load data if empty
-  useEffect(() => {
-    if (appointments.length === 0) dispatch({ type: "appointments/fetchStart" });
-    if (medicines.length === 0) dispatch({ type: "inventory/fetchInventoryRequest" });
-  }, [dispatch, appointments.length, medicines.length]);
+  const canSeeStock = role === 'admin' || role === 'pharmacist';
 
   // Revenue Line Data
   const revenueData = useMemo(() => {
@@ -63,8 +52,8 @@ export default function DashboardCharts({ startDate, endDate }) {
     }
 
     appointments.forEach((a) => {
-      const dt = dayjs(a.appointmentDate).format("YYYY-MM-DD");
-      if (map.has(dt)) map.set(dt, map.get(dt) + Number(a.paymentAmount || 0));
+      const dt = dayjs(a.appointment_date || a.appointmentDate).format("YYYY-MM-DD");
+      if (map.has(dt)) map.set(dt, map.get(dt) + Number(a.payment_amount || a.paymentAmount || 0));
     });
 
     return Array.from(map.entries()).map(([date, revenue]) => ({ date, revenue }));
@@ -83,18 +72,12 @@ export default function DashboardCharts({ startDate, endDate }) {
     return Object.keys(status).map((k) => ({ name: k, value: status[k] }));
   }, [appointments]);
 
-  // Stock Summary
   const stockData = medicines.map((m) => ({
-    name: m.medicineName || "Unknown",
+    name: m.medicine_name || m.medicineName || "Unknown",
     stock: Number(m.stock || 0),
   }));
 
-  if (loading)
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
-        <CircularProgress />
-      </Box>
-    );
+  const canSeeRevenue = role === 'admin' || role === 'receptionist' || role === 'provider'; // Excluding 'doctor' as per request
 
   const emptyBlock = (t) => <Typography sx={{ textAlign: "center", py: 4, opacity: 0.6 }}>{t}</Typography>;
 
@@ -102,27 +85,28 @@ export default function DashboardCharts({ startDate, endDate }) {
     <Box sx={{ mt: 4 }}>
       <Grid container spacing={3}>
         {/* Revenue Line Chart */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ p: 2, borderRadius: 3, boxShadow: "0 6px 20px rgba(0,0,0,0.10)" }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-              Revenue Trend
-            </Typography>
-            {!revenueData.length ? emptyBlock("No revenue data available") : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip content={<RichTooltip />} />
-                  <Line type="monotone" dataKey="revenue" stroke="#3f72af" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-        </Grid>
-
+        {canSeeRevenue && (
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 2, borderRadius: 3, boxShadow: "0 6px 20px rgba(0,0,0,0.10)" }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                Revenue Trend
+              </Typography>
+              {!revenueData.length ? emptyBlock("No revenue data available") : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip content={<RichTooltip />} />
+                    <Line type="monotone" dataKey="revenue" stroke="#3f72af" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
+          </Grid>
+        )}
         {/* Appointment Status Pie */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={canSeeRevenue ? 6 : 12}>
           <Card sx={{ p: 2, borderRadius: 3, boxShadow: "0 6px 20px rgba(0,0,0,0.10)" }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
               Appointment Status
@@ -141,28 +125,30 @@ export default function DashboardCharts({ startDate, endDate }) {
         </Grid>
 
         {/* Medical Stock Overview */}
-        <Grid item xs={12}>
-          <Card sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>Medical Stock Overview</Typography>
-            {!stockData.length ? (
-              <Box sx={{ py: 6, textAlign: "center", color: "gray" }}>No inventory data found.</Box>
-            ) : (
-              <ResponsiveContainer width="100%" height={360}>
-                <BarChart data={stockData} margin={{ left: 0, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f6fb" />
-                  <XAxis dataKey="name" tick={false} axisLine={false} />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value, name, props) => [`${value} units`, props.payload.name || "Unknown"]}
-                    labelFormatter={() => ""}
-                    contentStyle={{ borderRadius: 10, boxShadow: "0 0 12px rgba(0,0,0,0.1)" }}
-                  />
-                  <Bar dataKey="stock" fill="#4f86c6" radius={[8, 8, 0, 0]} animationDuration={700} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-        </Grid>
+        {canSeeStock && (
+          <Grid item xs={12}>
+            <Card sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>Medical Stock Overview</Typography>
+              {!stockData.length ? (
+                <Box sx={{ py: 6, textAlign: "center", color: "gray" }}>No inventory data found.</Box>
+              ) : (
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={stockData} margin={{ left: 0, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f6fb" />
+                    <XAxis dataKey="name" tick={false} axisLine={false} />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(value, name, props) => [`${value} units`, props.payload.name || "Unknown"]}
+                      labelFormatter={() => ""}
+                      contentStyle={{ borderRadius: 10, boxShadow: "0 0 12px rgba(0,0,0,0.1)" }}
+                    />
+                    <Bar dataKey="stock" fill="#4f86c6" radius={[8, 8, 0, 0]} animationDuration={700} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );

@@ -12,6 +12,7 @@ class StaffService {
     // ================= ROLE NORMALIZATION =================
     // Frontend: nurses → Backend: nurse
     private function normalizeRole($role) {
+        $role = strtolower($role);
         $map = [
             'doctors' => 'doctor',
             'nurses' => 'nurse',
@@ -31,14 +32,33 @@ class StaffService {
 
     // ================= GET SINGLE STAFF =================
     public function getStaffById($role, $id) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->getById($role, $id);
+        return $this->repo->getById($role, $id, $tenantId);
     }
 
     // ================= CREATE STAFF =================
     public function createStaff($data) {
         $data['tenant_id'] = $_REQUEST['user']['tenant_id'] ?? $data['tenant_id'] ?? 1;
         $role = $this->normalizeRole($data['role'] ?? 'doctor');
+
+        // ✅ Create User account for login if password provided
+        if (isset($data['password']) && !empty($data['password'])) {
+            require_once __DIR__ . '/../Repositories/UserRepository.php';
+            $userRepo = new UserRepository();
+            
+            // Link existing user or create new one
+            $existing = $userRepo->findByEmail($data['email']);
+            if (!$existing) {
+                $userRepo->create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => $data['password'], // UserRepo hashes it
+                    'role' => $role,
+                    'tenant_id' => $data['tenant_id']
+                ]);
+            }
+        }
 
         switch ($role) {
             case 'doctor':
@@ -60,13 +80,15 @@ class StaffService {
 
     // ================= UPDATE STAFF =================
     public function updateStaff($role, $id, $data) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->update($role, $id, $data);
+        return $this->repo->update($role, $id, $tenantId, $data);
     }
 
     // ================= DELETE STAFF =================
     public function deleteStaff($role, $id) {
+        $tenantId = $_REQUEST['user']['tenant_id'] ?? 1;
         $role = $this->normalizeRole($role);
-        return $this->repo->delete($role, $id);
+        return $this->repo->delete($role, $id, $tenantId);
     }
 }

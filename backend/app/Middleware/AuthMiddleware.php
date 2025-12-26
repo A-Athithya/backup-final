@@ -5,16 +5,18 @@ require_once __DIR__ . '/../Services/JwtService.php';
 
 class AuthMiddleware {
     public static function handle() {
-        // 1. Check PHP Session first (BEST PRACTICE)
-        $token = $_SESSION['accessToken'] ?? null;
+        // 1. Prefer Authorization header (Bearer Token)
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+        $token = null;
         
-        // 2. Fallback to Authorization Header (Bearer Token)
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+
+        // 2. Fallback to PHP Session
         if (!$token) {
-            $headers = getallheaders();
-            $authHeader = $headers['Authorization'] ?? '';
-            if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $token = $matches[1];
-            }
+            $token = $_SESSION['accessToken'] ?? null;
         }
 
         if ($token) {
@@ -23,7 +25,13 @@ class AuthMiddleware {
             
             if ($decoded) {
                 return $decoded; // Returns payload (sub, role, tenant_id)
+            } else {
+                 require_once __DIR__ . '/../Helpers/Log.php';
+                 Log::error("AuthMiddleware: Token Invalid", ['token_preview' => substr($token, 0, 10) . '...']);
             }
+        } else {
+             require_once __DIR__ . '/../Helpers/Log.php';
+             Log::error("AuthMiddleware: No Token Provided", ['headers' => $headers]);
         }
         
         require_once __DIR__ . '/../Helpers/Response.php';

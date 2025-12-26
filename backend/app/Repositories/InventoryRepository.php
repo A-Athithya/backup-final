@@ -6,7 +6,7 @@ class InventoryRepository extends BaseRepository {
     protected $table = 'medicines';
 
     public function getAll($tenantId) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE tenant_id = :tenant_id ORDER BY id DESC");
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE (tenant_id = :tenant_id OR tenant_id IS NULL) ORDER BY id DESC");
         $stmt->execute([':tenant_id' => $tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

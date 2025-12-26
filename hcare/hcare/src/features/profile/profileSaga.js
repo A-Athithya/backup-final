@@ -8,23 +8,22 @@ import {
   updateProfileSuccess,
   updateProfileFailure,
 } from "./profileSlice";
+import { updateUser } from "../auth/authSlice";
 
 function* fetchProfileWorker(action) {
   try {
     const { id, role, email } = action.payload || {};
-
-    if (!role || !email) {
-      throw new Error("Missing login user information");
-    }
+    const normalizedRole = (role || "").toLowerCase();
+    console.log(`🔍 Fetching profile for ${normalizedRole}: ${email}`);
 
     let endpoint = "";
-
-    switch (role) {
+    switch (normalizedRole) {
       case "admin":
         endpoint = `/users/${id}`;
         break;
 
       case "doctor":
+      case "provider":
         endpoint = `/doctors?email=${encodeURIComponent(email)}`;
         break;
 
@@ -45,7 +44,8 @@ function* fetchProfileWorker(action) {
         break;
 
       default:
-        throw new Error(`Unsupported role type: ${role}`);
+        console.error(`❌ Unsupported role: ${normalizedRole}`);
+        throw new Error(`Unsupported role type: ${normalizedRole}`);
     }
 
     const response = yield call(getData, endpoint);
@@ -66,29 +66,45 @@ function* fetchProfileWorker(action) {
 function* updateProfileWorker(action) {
   try {
     const { id, role, data } = action.payload;
+    const normalizedRole = (role || "").toLowerCase();
 
-    if (!id || !role) {
+    if (!id || !normalizedRole) {
       throw new Error("Missing profile ID or role");
     }
 
     // Determine table name based on role
     let tableName = "";
-    switch (role) {
-      case "doctor": tableName = "doctors"; break;
+    switch (normalizedRole) {
+      case "doctor":
+      case "provider": tableName = "doctors"; break;
       case "patient": tableName = "patients"; break;
       case "nurse": tableName = "nurses"; break;
       case "pharmacist": tableName = "pharmacists"; break;
       case "receptionist": tableName = "receptionists"; break;
       case "admin": tableName = "users"; break;
-      default: throw new Error("Unknown role");
+      default: throw new Error(`Unknown role: ${normalizedRole}`);
     }
 
-    const endpoint = `/${tableName}/${id}`;
+    // Use centralized /profile endpoint for self-updates
+    // This avoids needing 'admin' role for /doctors/ID, /patients/ID etc.
+    const endpoint = '/profile';
 
     // putData handles encryption
     const response = yield call(putData, endpoint, data);
 
-    yield put(updateProfileSuccess(response));
+    // ✅ 1. Optimistically update local profile state
+    yield put(updateProfileSuccess(data));
+
+    // ✅ 2. Sync core info to auth slice (Header, Name display etc)
+    yield put(updateUser({
+      name: data.name,
+      email: data.email
+    }));
+
+    // ✅ 3. Re-fetch full profile to ensure sync with DB (calculated fields)
+    if (data.email) {
+      yield put(fetchProfileStart({ id, role, email: data.email }));
+    }
 
   } catch (error) {
     yield put(updateProfileFailure(error.message));

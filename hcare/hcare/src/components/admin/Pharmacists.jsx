@@ -11,7 +11,8 @@ import { Table, Card, Input, Button, Space, message } from "antd";
 
 export default function Pharmacists() {
   const dispatch = useDispatch();
-  const { pharmacists, loading } = useSelector((s) => s.staff);
+  const { pharmacists: pharmacistsRaw, loading } = useSelector((s) => s.staff);
+  const pharmacists = Array.isArray(pharmacistsRaw) ? pharmacistsRaw : [];
 
   const [mode, setMode] = useState("list"); // list | new | edit | view
   const [selected, setSelected] = useState(null);
@@ -22,6 +23,7 @@ export default function Pharmacists() {
     email: "",
     contact: "",
     experience: "",
+    password: "", // Added password field
   });
 
   useEffect(() => {
@@ -123,14 +125,23 @@ export default function Pharmacists() {
             }}
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
           >
-            {["name","license_no","email","contact","experience"].map((field) => (
-              <div key={field}>
-                <label>{field.replace("_", " ").toUpperCase()}</label>
+            {[
+              { label: "Name", name: "name" },
+              { label: "License No", name: "license_no" },
+              { label: "Email", name: "email" },
+              { label: "Contact", name: "contact" },
+              { label: "Experience", name: "experience" },
+              ...(mode === "new" ? [{ label: "Login Password", name: "password", type: "password" }] : []),
+            ].map((item) => (
+              <div key={item.name}>
+                <label>{item.label}</label>
                 <input
-                  name={field}
-                  value={formData[field]}
+                  name={item.name}
+                  type={item.type || "text"}
+                  value={formData[item.name] || ""}
                   onChange={handleChange}
                   readOnly={mode === "view"}
+                  required={item.name === "password" && mode === "new"}
                   style={{ width: "100%", padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
                 />
               </div>

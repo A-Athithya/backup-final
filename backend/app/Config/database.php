@@ -7,10 +7,10 @@ class Database {
     public $conn;
 
     public function __construct() {
-        $this->host = getenv('DB_HOST');
-        $this->db_name = getenv('DB_NAME');
-        $this->username = getenv('DB_USER');
-        $this->password = getenv('DB_PASS');
+        $this->host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? 'localhost');
+        $this->db_name = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? 'hcare_db');
+        $this->username = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? 'root');
+        $this->password = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? '');
     }
 
     public function getConnection() {
@@ -27,4 +27,34 @@ class Database {
         }
         return $this->conn;
     }
+}
+
+/**
+ * Helper function to get database connection
+ */
+function getDbConnection() {
+    static $connection = null;
+    
+    if ($connection === null) {
+        try {
+            $host = getenv('DB_HOST') ?: 'localhost';
+            $dbname = getenv('DB_NAME') ?: 'hcare_db';
+            $username = getenv('DB_USER') ?: 'root';
+            $password = getenv('DB_PASS') ?: '';
+            
+            $connection = new mysqli($host, $username, $password, $dbname);
+            
+            if ($connection->connect_error) {
+                throw new Exception('Connection failed: ' . $connection->connect_error);
+            }
+            
+            $connection->set_charset('utf8mb4');
+            
+        } catch (Exception $e) {
+            Log::error('Database connection error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    return $connection;
 }

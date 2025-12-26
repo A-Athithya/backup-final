@@ -20,10 +20,20 @@ export default function AppointmentsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // ✅ Use Redux selectors instead of local state
-  const { list: appointments, loading: appointmentsLoading } = useSelector((s) => s.appointments);
-  const { list: patients, loading: patientsLoading } = useSelector((s) => s.patients);
-  const { list: doctors, loading: doctorsLoading } = useSelector((s) => s.doctors);
+  const { user } = useSelector((state) => state.auth);
+
+  // ✅ Use Redux selectors with safe defaults
+  const appointmentsRaw = useSelector((s) => s.appointments?.list);
+  const appointments = Array.isArray(appointmentsRaw) ? appointmentsRaw : [];
+  const appointmentsLoading = useSelector((s) => s.appointments?.loading) || false;
+
+  const patientsRaw = useSelector((s) => s.patients?.list);
+  const patients = Array.isArray(patientsRaw) ? patientsRaw : [];
+  const patientsLoading = useSelector((s) => s.patients?.loading) || false;
+
+  const doctorsRaw = useSelector((s) => s.doctors?.list);
+  const doctors = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+  const doctorsLoading = useSelector((s) => s.doctors?.loading) || false;
 
   const loading = appointmentsLoading || patientsLoading || doctorsLoading;
 
@@ -31,15 +41,15 @@ export default function AppointmentsPage() {
   const [mode, setMode] = useState("list");
   const [selected, setSelected] = useState(null);
 
-  const [filter, setFilter] = useState("Upcoming");
+  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
   // ================= LOAD DATA =================
   useEffect(() => {
-    if (appointments.length === 0) dispatch({ type: "appointments/fetchStart" });
+    dispatch({ type: "appointments/fetchStart" });
     if (patients.length === 0) dispatch({ type: "patients/fetchStart" });
     if (doctors.length === 0) dispatch({ type: "doctors/fetchStart" });
-  }, [dispatch, appointments.length, patients.length, doctors.length]);
+  }, [dispatch, patients.length, doctors.length]);
 
   // URL ?create=true na direct form open
   useEffect(() => {
@@ -120,12 +130,12 @@ export default function AppointmentsPage() {
     {
       title: "Patient",
       dataIndex: "patientId",
-      render: (id) => getPatientName(id),
+      render: (id, record) => record.patientName || getPatientName(id),
     },
     {
       title: "Doctor",
       dataIndex: "doctorId",
-      render: (id) => getDoctorName(id),
+      render: (id, record) => record.doctorName || getDoctorName(id),
     },
     {
       title: "Date",
@@ -138,12 +148,10 @@ export default function AppointmentsPage() {
       title: "Status",
       dataIndex: "status",
       render: (s) => {
-        const color =
-          s === "Completed"
-            ? "green"
-            : s === "Pending"
-              ? "orange"
-              : "red";
+        let color = "red";
+        if (s === "Completed") color = "green";
+        else if (s === "Accepted") color = "blue";
+        else if (s === "Pending") color = "orange";
         return <Tag color={color}>{s}</Tag>;
       },
     },
@@ -175,13 +183,50 @@ export default function AppointmentsPage() {
           </Button>
 
           {r.status !== "Completed" && r.status !== "Cancelled" && (
-            <Button
-              size="small"
-              style={{ background: "#52c41a", color: "#fff" }}
-              onClick={() => markAsCompleted(r)}
-            >
-              Complete
-            </Button>
+            <>
+              {/* Doctor & Admin Specific Actions */}
+              {(user?.role === "provider" || user?.role === "doctor" || user?.role === "admin") && r.status === "Pending" && (
+                <>
+                  <Button
+                    size="small"
+                    style={{ background: "#4caf50", color: "#fff", borderColor: "#4caf50" }}
+                    onClick={() => {
+                      dispatch({
+                        type: "appointments/updateStatus",
+                        payload: { appointment: r, status: "Accepted" }
+                      });
+                      message.success("Appointment Accepted");
+                    }}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      dispatch({
+                        type: "appointments/updateStatus",
+                        payload: { appointment: r, status: "Rejected" }
+                      });
+                      message.info("Appointment Rejected");
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </>
+              )}
+
+              {/* Standard Complete Action (for when accepted or generally open) */}
+              {r.status === "Accepted" && (
+                <Button
+                  size="small"
+                  style={{ background: "#52c41a", color: "#fff" }}
+                  onClick={() => markAsCompleted(r)}
+                >
+                  Complete
+                </Button>
+              )}
+            </>
           )}
         </Space>
       ),
@@ -200,7 +245,7 @@ export default function AppointmentsPage() {
 
     if (
       search &&
-      !getPatientName(a.patientId)
+      !(a.patientName || getPatientName(a.patientId))
         .toLowerCase()
         .includes(search.toLowerCase())
     )

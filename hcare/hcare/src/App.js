@@ -57,6 +57,26 @@ export default function App() {
 
   /* Persistence check removed as requested */
 
+  // Global CSRF Initialization
+  // This ensures that if a user refreshes the page, we re-fetch the CSRF token
+  // because the Redux store is cleared, but the Session Cookie might still be valid.
+  useEffect(() => {
+    // We import api dynamically or use the import at top if added
+    // Let's add imports at the top if missing
+    import("./api/client").then(({ default: api }) => {
+      import("./features/auth/authSlice").then(({ setCsrfToken }) => {
+        api.get("/csrf-token").then((res) => {
+          const token = res.data.csrfToken || res.data.csrf_token;
+          if (token) {
+            dispatch(setCsrfToken(token));
+          }
+        }).catch(() => {
+          // silently fail, user might be offline or logged out
+        });
+      });
+    });
+  }, [dispatch]);
+
   return (
     <MuiProvider>
       <IdleTimer />

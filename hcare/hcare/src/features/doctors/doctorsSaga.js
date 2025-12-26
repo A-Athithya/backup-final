@@ -4,13 +4,10 @@ import { getData, postData, putData, deleteData } from "../../api/client";
 // --- Worker sagas ---
 // Fetch all doctors
 function* fetchDoctors() {
-   console.log("Fetching doctors...");
   try {
     const data = yield call(getData, "/doctors"); // matches your backend route
-    console.log("Fetched doctors:", data); // debug
     yield put({ type: "doctors/fetchSuccess", payload: data });
   } catch (err) {
-    console.error("Doctors fetch error:", err);
     yield put({ type: "doctors/fetchFailure", payload: err.message });
   }
 }

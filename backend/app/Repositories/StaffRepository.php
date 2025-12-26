@@ -28,16 +28,16 @@ class StaffRepository {
     // ================= GET ALL =================
     public function getAll($role, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("SELECT * FROM $table WHERE tenant_id = ? ORDER BY id DESC");
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE (tenant_id = ? OR tenant_id IS NULL) ORDER BY id DESC");
         $stmt->execute([$tenantId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // ================= GET BY ID =================
-    public function getById($role, $id) {
+    public function getById($role, $id, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("SELECT * FROM $table WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$id, $tenantId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -101,8 +101,8 @@ class StaffRepository {
 
     public function createPharmacist($data) {
         $sql = "INSERT INTO pharmacists 
-                (name, email, license_no, contact, experience, tenant_id)
-                VALUES (?, ?, ?, ?, ?, ?)";
+                (name, email, license_no, contact, experience, status, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             $data['name'],
@@ -110,6 +110,7 @@ class StaffRepository {
             $data['licenseNo'] ?? $data['license_no'] ?? null,
             $data['contact'] ?? null,
             $data['experience'] ?? null,
+            $data['status'] ?? 'Active',
             $data['tenant_id']
         ]);
         return $this->db->lastInsertId();
@@ -132,46 +133,82 @@ class StaffRepository {
     }
 
     // ================= UPDATE STAFF =================
-    public function update($role, $id, $data) {
+    public function update($role, $id, $tenantId, $data) {
         $table = $this->getTable($role);
 
         // Map frontend keys to DB columns
-        if (isset($data['contact'])) {
-            $data['contact'] = $data['contact'];
-        }
-
-        // Allowed columns per role
-        $allowedColumns = [
-            'doctor' => ['name','email','gender','age','specialization','qualification','experience','contact','address','available_days','available_time','status','department','license_number','rating','consultation_fee','bio'],
-            'nurse' => ['name','email','gender','age','phone','department','shift','experience','status','date_joined'],
-            'pharmacist' => ['name','email','license_no','contact','experience'],
-            'receptionist' => ['name','email','shift','contact','status']
+        $mapping = [
+            'name' => 'name',
+            'email' => 'email',
+            'gender' => 'gender',
+            'age' => 'age',
+            'phone' => 'phone',
+            'contact' => 'contact',
+            'address' => 'address',
+            'department' => 'department',
+            'shift' => 'shift',
+            'experience' => 'experience',
+            'status' => 'status',
+            'licenseNo' => 'license_no',
+            'licenseNumber' => 'license_number',
+            'license_no' => 'license_no',
+            'license_number' => 'license_number',
+            'qualification' => 'qualification',
+            'specialization' => 'specialization',
+            'bloodGroup' => 'blood_group',
+            'dateJoined' => 'date_joined',
+            'dateOfBirth' => 'dob',
+            'dob' => 'dob'
         ];
 
-        $fields = [];
-        $values = [];
+        // Column consistency: phone vs contact varies by table
+        if ($role === 'doctor' || $role === 'pharmacist' || $role === 'receptionist') {
+            $mapping['phone'] = 'contact';
+            $mapping['contact'] = 'contact';
+        } elseif ($role === 'nurse') {
+            $mapping['phone'] = 'phone';
+            $mapping['contact'] = 'phone';
+        }
 
-        foreach ($data as $key => $value) {
-            if ($key !== 'id' && $key !== 'role' && in_array($key, $allowedColumns[$role])) {
-                $fields[] = "$key = ?";
-                $values[] = $value;
+        $columnsToUpdate = [];
+        foreach ($mapping as $frontendKey => $dbCol) {
+            if (isset($data[$frontendKey])) {
+                $columnsToUpdate[$dbCol] = $data[$frontendKey];
             }
         }
 
-        if (empty($fields)) {
-            throw new Exception("No valid fields to update for role: $role");
+        // Calculate Age from dateOfBirth if provided
+        if (isset($data['dateOfBirth']) && $data['dateOfBirth']) {
+            try {
+                $dob = new DateTime($data['dateOfBirth']);
+                $now = new DateTime();
+                $columnsToUpdate['age'] = $now->diff($dob)->y;
+            } catch (Exception $e) {
+                // Ignore invalid date
+            }
+        }
+
+        if (empty($columnsToUpdate)) return false;
+
+        $fields = [];
+        $values = [];
+        foreach ($columnsToUpdate as $col => $val) {
+            $fields[] = "$col = ?";
+            $values[] = $val;
         }
 
         $values[] = $id;
-        $sql = "UPDATE $table SET " . implode(',', $fields) . " WHERE id = ?";
+        $values[] = $tenantId;
+        
+        $sql = "UPDATE $table SET " . implode(', ', $fields) . " WHERE id = ? AND tenant_id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($values);
     }
 
     // ================= DELETE STAFF =================
-    public function delete($role, $id) {
+    public function delete($role, $id, $tenantId) {
         $table = $this->getTable($role);
-        $stmt = $this->db->prepare("DELETE FROM $table WHERE id = ?");
-        return $stmt->execute([$id]);
+        $stmt = $this->db->prepare("DELETE FROM $table WHERE id = ? AND tenant_id = ?");
+        return $stmt->execute([$id, $tenantId]);
     }
 }
